@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Processing</title>
+    <script>
+        function uploadAudio(event) {
+            event.preventDefault();
+            let formData = new FormData();
+            let fileInput = document.getElementById("audioFile");
+            formData.append("audio_file", fileInput.files[0]);
+    
+            fetch("/process_audio", {
+                method: "POST",
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+
+                    document.getElementById("summary").innerText = data.summary;
+                    document.getElementById("sentiment").innerText = data.sentiment;
+                    document.getElementById("suggestion").innerText = data.suggestion;
+                }
+            )
+            .catch(error => {
+                console.error("Error:", error);
+                document.getElementById("summary").innerText = "Error: Could not process the file.";
+                document.getElementById("sentiment").innerText = "Error: Could not process the file.";
+                document.getElementById("suggestion").innerText = "Error: Could not process the file.";
+            });
+        }
+    </script>
+</head>
+<body>
+    <h1>Upload an Audio File</h1>
+    <form onsubmit="uploadAudio(event)">
+        <input type="file" id="audioFile" name="audio_file" accept="audio/*" required>
+        <button type="submit">Upload</button>
+    </form>
+
+    <h2>Results</h2>
+    <div>
+        <h3>Audio Summary</h3>
+        <p id="summary">Waiting for response...</p>
+    </div>
+    <div>
+        <h3>Audio Sentiment</h3>
+        <p id="sentiment">Waiting for response...</p>
+    </div>
+    <div>
+        <h3>Suggestion Response</h3>
+        <p id="suggestion">Waiting for response...</p>
+    </div>
+</body>
+</html>
