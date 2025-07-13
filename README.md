@@ -25,3 +25,38 @@ Ideal for support, sales, or research teams that need fast insights from audio.
 
 ## 🗂 Project Layout
 
+<pre>
+
+call-analyzer/
+├── src/
+│   ├── __init__.py
+│   ├── main.py
+│   ├── whisper_module.py
+│   ├── gemini_module.py
+│   ├── generate_audio.py
+│   └── app.py
+├── web/
+│   └── index.html
+├── samples/
+│   └── AudioRec.mp3
+├── requirements.txt
+├── .gitignore
+├── LICENSE
+└── README.md
+
+</pre>
+
+---
+
+## 🚀 Quick Start
+
+```bash
+# 1. Clone
+git clone https://github.com/C0deRatoR/call-analyzer.git
+cd call-analyzer
+
+# 2. Install dependencies (preferably in a venv)
+pip install -r requirements.txt
+
+# 3. Transcribe & analyze an audio file
+python src/main.py samples/AudioRec.mp3
