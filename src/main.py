@@ -27,3 +27,16 @@ def process_audio(filepath):
     }
 
     return response
+
+if __name__ == "__main__":
+    import argparse
+    import json
+
+    parser = argparse.ArgumentParser(
+        description="Process an audio file and output the summary, sentiment, and response suggestions"
+    )
+    parser.add_argument("audio_file", help="Path to the audio file to analyze")
+    args = parser.parse_args()
+
+    result = process_audio(args.audio_file)
+    print(json.dumps(result, indent=2))

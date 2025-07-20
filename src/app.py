@@ -3,7 +3,7 @@ import os
 
 from main import process_audio
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder="../web", static_folder="../web")
 UPLOAD_FOLDER = "uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER

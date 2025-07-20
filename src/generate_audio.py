@@ -10,4 +10,4 @@ Great choice! For the Computer Science program, you’ll need to submit your hig
 tts = gTTS(conversation, lang="en")
 tts.save("university_admission.wav")
 
-print("Audio file saved as university_admission.mp3")
+print("Audio file saved as university_admission.wav")

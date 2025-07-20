@@ -5,3 +5,9 @@ __pycache__/
 .env
 *.log
 samples/
+venv/
+uploads/
+*.wav
+*.mp3
+*.m4a
+*.flac
