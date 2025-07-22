@@ -1,6 +1,5 @@
 from flask import Flask, render_template, request, jsonify
 import os
-
 from main import process_audio
 
 app = Flask(__name__, template_folder="../web", static_folder="../web")
