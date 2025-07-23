@@ -1,138 +1,111 @@
-import os
 import logging
-from typing import Optional, Dict, Any
-import whisper
+from typing import Dict, List, Optional
+from faster_whisper import WhisperModel
+import os
 
-# Configure logging
 logger = logging.getLogger(__name__)
 
 # Global model cache
-_whisper_model: Optional[Any] = None
-_current_model_size: str = "base"
+_model_cache: Dict[str, WhisperModel] = {}
 
-def get_whisper_model(model_size: str = "base") -> Any:
+def get_available_models() -> Dict[str, str]:
+    """Return available Whisper model sizes and descriptions."""
+    return {
+        "tiny": "Fastest, least accurate (~39 MB)",
+        "base": "Good balance of speed and accuracy (~74 MB)", 
+        "small": "Better accuracy, slower (~244 MB)",
+        "medium": "High accuracy, much slower (~769 MB)",
+        "large": "Highest accuracy, slowest (~1550 MB)"
+    }
+
+def transcribe_audio(filepath: str, model_size: str = "base") -> str:
     """
-    Get cached Whisper model or load if not cached.
+    Transcribe audio file using Faster Whisper.
     
     Args:
-        model_size: Size of the model to load (tiny, base, small, medium, large)
+        filepath: Path to the audio file
+        model_size: Size of the model to use
         
     Returns:
-        Loaded Whisper model
-    """
-    global _whisper_model, _current_model_size
-    
-    # Load model if not cached or different size requested
-    if _whisper_model is None or _current_model_size != model_size:
-        try:
-            logger.info(f"Loading Whisper model: {model_size}")
-            _whisper_model = whisper.load_model(model_size)
-            _current_model_size = model_size
-            logger.info(f"Whisper model loaded successfully: {model_size}")
-        except Exception as e:
-            logger.error(f"Failed to load Whisper model: {e}")
-            raise RuntimeError(f"Failed to load Whisper model '{model_size}': {str(e)}")
-    
-    return _whisper_model
-
-def validate_audio_file(audio_path: str) -> None:
-    """Validate audio file before transcription."""
-    if not audio_path:
-        raise ValueError("Audio path cannot be empty")
-    
-    if not os.path.exists(audio_path):
-        raise FileNotFoundError(f"Audio file not found: {audio_path}")
-    
-    if not os.path.isfile(audio_path):
-        raise ValueError(f"Path is not a file: {audio_path}")
-    
-    file_size = os.path.getsize(audio_path)
-    if file_size == 0:
-        raise ValueError("Audio file is empty")
-    
-    # Check if file is too large (500MB limit for transcription)
-    max_size = 500 * 1024 * 1024  # 500MB
-    if file_size > max_size:
-        logger.warning(f"Large file detected: {file_size / (1024*1024):.1f}MB")
-
-def transcribe_audio(audio_path: str, model_size: str = "base", **kwargs) -> str:
-    """
-    Transcribe audio file using OpenAI Whisper.
-    
-    Args:
-        audio_path: Path to the audio file
-        model_size: Whisper model size (tiny, base, small, medium, large)
-        **kwargs: Additional arguments for transcribe method
-        
-    Returns:
-        Transcribed text
+        Transcribed text from the audio
         
     Raises:
-        FileNotFoundError: If audio file doesn't exist
-        ValueError: If file is invalid
-        RuntimeError: If transcription fails
+        FileNotFoundError: If the audio file doesn't exist
+        Exception: If transcription fails
     """
     try:
-        logger.info(f"Starting transcription for: {audio_path}")
+        logger.info(f"Starting transcription for: {filepath}")
         
-        # Validate input
-        validate_audio_file(audio_path)
+        # Validate file exists
+        if not os.path.exists(filepath):
+            raise FileNotFoundError(f"Audio file not found: {filepath}")
         
-        # Get cached model
-        model = get_whisper_model(model_size)
+        # Validate model size
+        available_models = get_available_models()
+        if model_size not in available_models:
+            logger.warning(f"Unknown model size '{model_size}', using 'base' instead")
+            model_size = "base"
         
-        # Set default transcription options
-        transcribe_options = {
-            "language": kwargs.get("language", None),  # Auto-detect if None
-            "task": kwargs.get("task", "transcribe"),
-            "temperature": kwargs.get("temperature", 0.0),
-            "word_timestamps": kwargs.get("word_timestamps", False),
-            "no_speech_threshold": kwargs.get("no_speech_threshold", 0.6),
-            "logprob_threshold": kwargs.get("logprob_threshold", -1.0),
-        }
-        
-        # Remove None values
-        transcribe_options = {k: v for k, v in transcribe_options.items() if v is not None}
+        # Load model (with caching)
+        model = _load_model(model_size)
         
         # Transcribe audio
-        logger.info("Running Whisper transcription...")
-        result = model.transcribe(audio_path, **transcribe_options)
+        logger.info("Running Faster Whisper transcription...")
+        segments, info = model.transcribe(
+            filepath, 
+            beam_size=5,
+            language="en",  # Auto-detect language, fallback to English
+            vad_filter=True  # Voice activity detection
+        )
         
-        if not result or "text" not in result:
-            raise RuntimeError("Transcription failed: No result returned")
+        # Combine segments into transcript
+        transcript_parts = []
+        for segment in segments:
+            transcript_parts.append(segment.text.strip())
         
-        transcript = result["text"].strip()
+        transcript = " ".join(transcript_parts).strip()
         
         if not transcript:
-            logger.warning("Transcription resulted in empty text")
-            return "No speech detected in audio file."
+            logger.warning("Transcription returned empty result")
+            return "No speech detected in the audio file."
         
         logger.info(f"Transcription completed. Text length: {len(transcript)} characters")
         return transcript
         
     except FileNotFoundError:
-        raise
-    except ValueError:
+        logger.error(f"Audio file not found: {filepath}")
         raise
     except Exception as e:
-        error_msg = f"Transcription failed: {str(e)}"
-        logger.error(error_msg)
-        raise RuntimeError(error_msg)
+        logger.error(f"Transcription failed: {e}")
+        raise Exception(f"Transcription failed: {str(e)}")
 
-def get_available_models() -> Dict[str, str]:
-    """Get list of available Whisper models with descriptions."""
-    return {
-        "tiny": "Fastest, least accurate (39 MB)",
-        "base": "Good balance of speed and accuracy (74 MB)",
-        "small": "Better accuracy, slower (244 MB)", 
-        "medium": "High accuracy, slower (769 MB)",
-        "large": "Best accuracy, slowest (1550 MB)"
-    }
+def _load_model(model_size: str) -> WhisperModel:
+    """
+    Load and cache Whisper model for reuse.
+    
+    Args:
+        model_size: Size of the model to load
+        
+    Returns:
+        Loaded WhisperModel instance
+    """
+    if model_size not in _model_cache:
+        logger.info(f"Loading Faster Whisper model: {model_size}")
+        try:
+            _model_cache[model_size] = WhisperModel(
+                model_size, 
+                device="cpu",  # Use CPU for better compatibility
+                compute_type="int8"  # Optimized for speed and memory
+            )
+            logger.info(f"Faster Whisper model loaded successfully: {model_size}")
+        except Exception as e:
+            logger.error(f"Failed to load model {model_size}: {e}")
+            raise Exception(f"Failed to load Whisper model: {str(e)}")
+    
+    return _model_cache[model_size]
 
-def clear_model_cache() -> None:
-    """Clear the cached Whisper model to free memory."""
-    global _whisper_model, _current_model_size
-    if _whisper_model is not None:
-        logger.info(f"Clearing Whisper model cache: {_current_model_size}")
-        _whisper_model = None
-        _current_model_size = ""
+def clear_model_cache():
+    """Clear the model cache to free memory."""
+    global _model_cache
+    _model_cache.clear()
+    logger.info("Model cache cleared")
