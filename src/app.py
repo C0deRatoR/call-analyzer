@@ -13,10 +13,17 @@ static_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'web'
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = Flask(__name__, 
-            template_folder="../web", 
-            static_folder="../web",
-            static_url_path="")
+
+# Production-ready Flask configuration
+def create_app():
+    template_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'web'))
+    static_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'web'))
+
+    app = Flask(__name__, 
+                template_folder=template_dir, 
+                static_folder=static_dir,
+                static_url_path="")
+    return app
 
 
 # Configuration
@@ -135,5 +142,12 @@ def process_audio_request():
                 logger.warning(f"Failed to cleanup file: {cleanup_error}")
 
 if __name__ == "__main__":
-    # Production-safe settings
-    app.run(debug=False, host='127.0.0.1', port=5000)
+    # Production configuration
+    port = int(os.environ.get('PORT', 5000))
+    debug = os.environ.get('RAILWAY_ENVIRONMENT') != 'production'
+    
+    app.run(
+        host='0.0.0.0',  # Required for Railway
+        port=port,
+        debug=debug
+    )
