@@ -3,576 +3,266 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🎧 Call Analyzer - AI Audio Intelligence</title>
+    <title>Call Analyzer - AI-Powered Audio Intelligence</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        :root {
-            --background-color: #0f0f23;
-            --card-bg-color: #1a1a2e;
-            --secondary-bg: #16213e;
-            --text-color: #ffffff;
-            --subtle-text-color: #94a3b8;
-            --accent-color: #3b82f6;
-            --accent-hover: #2563eb;
-            --success-color: #10b981;
-            --warning-color: #f59e0b;
-            --error-color: #ef4444;
-            --border-color: #374151;
-            --border-radius: 16px;
-            --box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
-            --glow-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
-        }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
-            color: var(--text-color);
-            margin: 0;
-            padding: 1rem;
-            min-height: 100vh;
-            overflow-x: hidden;
-        }
-
-        .container {
-            width: 100%;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 2rem 0;
-        }
-        
-        .card {
-            background: var(--card-bg-color);
-            border-radius: var(--border-radius);
-            box-shadow: var(--box-shadow);
-            border: 1px solid var(--border-color);
-            overflow: hidden;
-            text-align: center;
-            backdrop-filter: blur(10px);
-            animation: fadeInUp 0.6s ease-out;
-            margin-bottom: 2rem;
-        }
-
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .card-header {
-            padding: 2.5rem 2rem 1.5rem;
-            background: linear-gradient(135deg, var(--accent-color), var(--accent-hover));
-            color: white;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .card-header::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: repeating-linear-gradient(
-                45deg,
-                transparent,
-                transparent 2px,
-                rgba(255,255,255,0.05) 2px,
-                rgba(255,255,255,0.05) 4px
-            );
-            animation: shimmer 20s linear infinite;
-        }
-
-        @keyframes shimmer {
-            0% { transform: translateX(-100%); }
-            100% { transform: translateX(100%); }
-        }
-        
-        .card-header h1 {
-            margin: 0;
-            font-size: 2rem;
-            font-weight: 700;
-            position: relative;
-            z-index: 1;
-        }
-        
-        .card-header p {
-            margin: 0.5rem 0 0;
-            opacity: 0.9;
-            font-size: 1.1rem;
-            position: relative;
-            z-index: 1;
-        }
-        
-        .card-body {
-            padding: 0 2rem 2rem;
-        }
-
-        #drop-area {
-            border: 2px dashed var(--border-color);
-            border-radius: 12px;
-            padding: 3rem 2rem;
-            transition: all 0.3s ease;
-            cursor: pointer;
-            background: var(--secondary-bg);
-            position: relative;
-            overflow: hidden;
-        }
-        
-        #drop-area::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.1), transparent);
-            transition: left 0.5s;
-        }
-        
-        #drop-area:hover::before {
-            left: 100%;
-        }
-        
-        #drop-area.highlight {
-            border-color: var(--accent-color);
-            background: var(--secondary-bg);
-            box-shadow: var(--glow-shadow);
-            transform: scale(1.02);
-        }
-
-        #uploadForm {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        #audioFile { display: none; }
-        
-        .file-icon {
-            font-size: 3rem;
-            color: var(--accent-color);
-            margin-bottom: 1rem;
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
-        }
-
-        .file-label {
-            font-size: 1.2rem;
-            font-weight: 600;
-            color: var(--text-color);
-        }
-        
-        .file-label span {
-            font-weight: 400;
-            color: var(--subtle-text-color);
-            display: block;
-            margin-top: 0.5rem;
-        }
-        
-        #fileName {
-            background: var(--secondary-bg);
-            border-radius: 8px;
-            padding: 0.75rem 1rem;
-            width: 100%;
-            box-sizing: border-box;
-            color: var(--text-color);
-            border: 1px solid var(--border-color);
-            display: none;
-            font-family: 'Courier New', monospace;
-            animation: slideIn 0.3s ease-out;
-        }
-
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        #analyze-button {
-            background: linear-gradient(135deg, var(--accent-color), var(--accent-hover));
-            color: white;
-            border: none;
-            padding: 1rem 2rem;
-            border-radius: 12px;
-            cursor: pointer;
-            font-size: 1rem;
-            font-weight: 600;
-            width: 100%;
-            margin-top: 1.5rem;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        #analyze-button::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-            transition: left 0.5s;
-        }
-
-        #analyze-button:hover::before {
-            left: 100%;
-        }
-        
-        #analyze-button.success {
-            background: linear-gradient(135deg, var(--success-color), #059669);
-            animation: successPulse 0.6s ease-out;
-        }
-
-        @keyframes successPulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
-        }
-
-        #analyze-button:disabled {
-            background: #374151;
-            cursor: not-allowed;
-            opacity: 0.6;
-        }
-
-        #analyze-button:not(:disabled):hover {
-            transform: translateY(-2px);
-            box-shadow: var(--glow-shadow);
-        }
-
-        .loader {
-            display: none;
-            height: 60px;
-            margin-top: 1.5rem;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 1rem;
-        }
-        
-        .spinner {
-            width: 40px;
-            height: 40px;
-            border: 4px solid var(--border-color);
-            border-top-color: var(--accent-color);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        .progress-text {
-            color: var(--subtle-text-color);
-            font-size: 0.9rem;
-            animation: fadeInOut 2s infinite;
-        }
-
-        @keyframes fadeInOut {
-            0%, 100% { opacity: 0.5; }
-            50% { opacity: 1; }
-        }
-        
-        @keyframes spin { 
-            to { transform: rotate(360deg); } 
-        }
-
-        /* Results Section */
-        .results {
-            display: none;
-            animation: fadeInUp 0.8s ease-out;
-        }
-
-        .results.show {
-            display: block;
-        }
-
-        .result-item {
-            background: var(--secondary-bg);
-            border-radius: 12px;
-            padding: 1.5rem;
-            margin-bottom: 1rem;
-            border-left: 4px solid var(--accent-color);
-            text-align: left;
-            transition: transform 0.2s ease;
-        }
-
-        .result-item:hover {
-            transform: translateX(5px);
-        }
-
-        .result-item h3 {
-            margin: 0 0 1rem 0;
-            color: var(--accent-color);
-            font-size: 1.1rem;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .result-item p {
-            margin: 0;
-            line-height: 1.6;
-            color: var(--text-color);
-        }
-
-        .result-item ul {
-            margin: 0;
-            padding-left: 1.5rem;
-            color: var(--text-color);
-        }
-
-        .result-item ul li {
-            margin-bottom: 0.5rem;
-            line-height: 1.5;
-        }
-
-        /* Status indicators */
-        .status-bar {
-            display: none;
-            background: var(--secondary-bg);
-            border-radius: 8px;
-            padding: 1rem;
-            margin-top: 1rem;
-            text-align: center;
-        }
-
-        .status-bar.show {
-            display: block;
-            animation: slideIn 0.3s ease-out;
-        }
-
-        .status-dot {
-            display: inline-block;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            margin-right: 0.5rem;
-            background: var(--success-color);
-            animation: pulse 1s infinite;
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .container {
-                padding: 1rem 0;
-            }
-            
-            .card-header h1 {
-                font-size: 1.5rem;
-            }
-            
-            #drop-area {
-                padding: 2rem 1rem;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="styles/main.css">
 </head>
 <body>
-    <div class="container">
-        <div class="card">
-            <div class="card-header">
-                <h1><i class="fas fa-microphone"></i> Call Analyzer</h1>
-                <p>AI-powered audio transcription and analysis</p>
+    <!-- Navigation Header -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <i class="fas fa-brain nav-icon"></i>
+                <span class="brand-text">Call Analyzer</span>
             </div>
-            <div class="card-body">
-                <form id="uploadForm" onsubmit="uploadAudio(event)">
-                    <div id="drop-area" onclick="document.getElementById('audioFile').click();">
-                        <div class="file-icon"><i class="fas fa-cloud-arrow-up"></i></div>
-                        <label for="audioFile" class="file-label">Click to upload audio file<span>or drag and drop (WAV, MP3, M4A, FLAC)</span></label>
-                        <input type="file" id="audioFile" name="audio_file" accept="audio/*" required>
-                    </div>
-                    <div id="fileName">No file selected</div>
-                    <button type="submit" id="analyze-button" disabled>
-                        <i class="fas fa-brain"></i> Analyze Audio
-                    </button>
-                </form>
-                <div id="loader" class="loader">
-                    <div class="spinner"></div>
-                    <div class="progress-text">Processing audio... This may take a moment</div>
-                </div>
-                <div id="status-bar" class="status-bar">
-                    <span class="status-dot"></span>
-                    <span id="status-text">Ready to analyze</span>
-                </div>
+            <div class="nav-actions">
+                <button class="theme-toggle" id="themeToggle">
+                    <i class="fas fa-moon"></i>
+                </button>
             </div>
         </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Hero Section -->
+        <section class="hero-section">
+            <div class="container">
+                <div class="hero-content">
+                    <h1 class="hero-title">
+                        <span class="gradient-text">AI-Powered</span>
+                        Call Analysis
+                    </h1>
+                    <p class="hero-subtitle">
+                        Transform your audio conversations into actionable insights with advanced AI transcription and sentiment analysis
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Upload Section -->
+        <section class="upload-section">
+            <div class="container">
+                <div class="upload-card">
+                    <div class="upload-header">
+                        <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                        <h2>Upload Audio File</h2>
+                        <p>Drop your audio file here or click to browse</p>
+                    </div>
+                    
+                    <form id="uploadForm" class="upload-form">
+                        <div class="file-drop-zone" id="fileDropZone">
+                            <div class="drop-zone-content">
+                                <div class="file-icon-wrapper">
+                                    <i class="fas fa-file-audio file-icon"></i>
+                                </div>
+                                <div class="drop-text">
+                                    <span class="primary-text">Drop audio file here</span>
+                                    <span class="secondary-text">or click to browse</span>
+                                </div>
+                                <div class="supported-formats">
+                                    <span>Supports: MP3, WAV, M4A, FLAC</span>
+                                </div>
+                            </div>
+                            <input type="file" id="audioFile" name="audio_file" accept="audio/*" hidden>
+                        </div>
+                        
+                        <div class="file-info" id="fileInfo" style="display: none;">
+                            <div class="file-details">
+                                <i class="fas fa-music"></i>
+                                <div class="file-metadata">
+                                    <span class="file-name" id="fileName"></span>
+                                    <span class="file-size" id="fileSize"></span>
+                                </div>
+                                <button type="button" class="remove-file" id="removeFile">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="analyze-btn" id="analyzeBtn" disabled>
+                            <span class="btn-text">
+                                <i class="fas fa-brain"></i>
+                                Analyze Audio
+                            </span>
+                            <div class="btn-loader" style="display: none;">
+                                <div class="spinner"></div>
+                                <span>Processing...</span>
+                            </div>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <!-- Processing Section -->
+        <section class="processing-section" id="processingSection" style="display: none;">
+            <div class="container">
+                <div class="processing-card">
+                    <div class="processing-steps">
+                        <div class="step" id="step1">
+                            <div class="step-icon">
+                                <i class="fas fa-upload"></i>
+                            </div>
+                            <span class="step-text">Uploading</span>
+                        </div>
+                        <div class="step" id="step2">
+                            <div class="step-icon">
+                                <i class="fas fa-microphone"></i>
+                            </div>
+                            <span class="step-text">Transcribing</span>
+                        </div>
+                        <div class="step" id="step3">
+                            <div class="step-icon">
+                                <i class="fas fa-brain"></i>
+                            </div>
+                            <span class="step-text">Analyzing</span>
+                        </div>
+                        <div class="step" id="step4">
+                            <div class="step-icon">
+                                <i class="fas fa-check"></i>
+                            </div>
+                            <span class="step-text">Complete</span>
+                        </div>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <div class="processing-status" id="processingStatus">
+                        Initializing analysis...
+                    </div>
+                </div>
+            </div>
+        </section>
 
         <!-- Results Section -->
-        <div id="results" class="results card">
-            <div class="card-body" style="text-align: left;">
-                <div id="summary-result" class="result-item">
-                    <h3><i class="fas fa-file-text"></i> Summary</h3>
-                    <p id="summary-content">Analysis results will appear here...</p>
+        <section class="results-section" id="resultsSection" style="display: none;">
+            <div class="container">
+                <!-- Summary Card -->
+                <div class="result-card">
+                    <div class="card-header">
+                        <i class="fas fa-file-text"></i>
+                        <h3>Summary</h3>
+                    </div>
+                    <div class="card-content">
+                        <p id="summaryContent">Summary will appear here...</p>
+                    </div>
                 </div>
-                <div id="sentiment-result" class="result-item">
-                    <h3><i class="fas fa-heart"></i> Sentiment Analysis</h3>
-                    <p id="sentiment-content">Sentiment analysis will appear here...</p>
+
+                <!-- Sentiment Analysis Card -->
+                <div class="result-card sentiment-card">
+                    <div class="card-header">
+                        <i class="fas fa-heart"></i>
+                        <h3>Sentiment Analysis</h3>
+                        <div class="card-actions">
+                            <button class="toggle-details" id="toggleSentimentDetails">
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        <!-- AI Analysis -->
+                        <div class="sentiment-overview">
+                            <div class="sentiment-badge" id="sentimentBadge">Neutral</div>
+                            <div class="confidence-score">
+                                <span class="label">Confidence:</span>
+                                <span class="value" id="confidenceValue">--</span>
+                            </div>
+                        </div>
+                        
+                        <div class="ai-analysis">
+                            <h4>AI Analysis</h4>
+                            <p id="sentimentAnalysis">Sentiment analysis will appear here...</p>
+                        </div>
+
+                        <!-- Detailed Scores -->
+                        <div class="sentiment-details" id="sentimentDetails" style="display: none;">
+                            <h4>Detailed Scores</h4>
+                            <div class="score-bars">
+                                <div class="score-item">
+                                    <div class="score-label">
+                                        <span class="label-text">Positive</span>
+                                        <span class="score-value" id="positiveValue">0%</span>
+                                    </div>
+                                    <div class="score-bar">
+                                        <div class="score-fill positive" id="positiveBar"></div>
+                                    </div>
+                                </div>
+                                <div class="score-item">
+                                    <div class="score-label">
+                                        <span class="label-text">Negative</span>
+                                        <span class="score-value" id="negativeValue">0%</span>
+                                    </div>
+                                    <div class="score-bar">
+                                        <div class="score-fill negative" id="negativeBar"></div>
+                                    </div>
+                                </div>
+                                <div class="score-item">
+                                    <div class="score-label">
+                                        <span class="label-text">Neutral</span>
+                                        <span class="score-value" id="neutralValue">0%</span>
+                                    </div>
+                                    <div class="score-bar">
+                                        <div class="score-fill neutral" id="neutralBar"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="compound-score">
+                                <span class="compound-label">Overall Score:</span>
+                                <span class="compound-value" id="compoundScore">0.000</span>
+                            </div>
+
+                            <div class="emotional-indicators" id="emotionalIndicators" style="display: none;">
+                                <h5>Emotional Indicators</h5>
+                                <div class="indicators-list" id="indicatorsList"></div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div id="suggestions-result" class="result-item">
-                    <h3><i class="fas fa-lightbulb"></i> AI Suggestions</h3>
-                    <div id="suggestions-content">Suggestions will appear here...</div>
+
+                <!-- Suggestions Card -->
+                <div class="result-card">
+                    <div class="card-header">
+                        <i class="fas fa-lightbulb"></i>
+                        <h3>AI Suggestions</h3>
+                        <div class="card-actions">
+                            <button class="export-btn" id="exportSuggestions">
+                                <i class="fas fa-download"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        <div id="suggestionsContent">
+                            <p>AI suggestions will appear here...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="action-buttons">
+                    <button class="btn btn-secondary" id="analyzeAnother">
+                        <i class="fas fa-plus"></i>
+                        Analyze Another File
+                    </button>
+                    <button class="btn btn-primary" id="exportResults">
+                        <i class="fas fa-download"></i>
+                        Export Results
+                    </button>
                 </div>
             </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2025 Call Analyzer. Built with AI-powered insights.</p>
         </div>
-    </div>
+    </footer>
 
-    <script>
-        const dropArea = document.getElementById('drop-area');
-        const fileInput = document.getElementById('audioFile');
-        const fileNameDisplay = document.getElementById('fileName');
-        const analyzeButton = document.getElementById('analyze-button');
-        const loader = document.getElementById('loader');
-        const uploadForm = document.getElementById('uploadForm');
-        const statusBar = document.getElementById('status-bar');
-        const statusText = document.getElementById('status-text');
-        const results = document.getElementById('results');
-
-        // Show status bar on page load
-        statusBar.classList.add('show');
-
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            dropArea.addEventListener(eventName, preventDefaults, false);
-        });
-
-        function preventDefaults(e) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
-
-        ['dragenter', 'dragover'].forEach(eventName => {
-            dropArea.addEventListener(eventName, () => dropArea.classList.add('highlight'), false);
-        });
-
-        ['dragleave', 'drop'].forEach(eventName => {
-            dropArea.addEventListener(eventName, () => dropArea.classList.remove('highlight'), false);
-        });
-
-        dropArea.addEventListener('drop', handleDrop, false);
-
-        function handleDrop(e) {
-            fileInput.files = e.dataTransfer.files;
-            updateFileDisplay();
-        }
-
-        fileInput.addEventListener('change', updateFileDisplay);
-
-        function updateFileDisplay() {
-            if (fileInput.files.length > 0) {
-                const file = fileInput.files[0];
-                fileNameDisplay.innerHTML = `<i class="fas fa-file-audio"></i> ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
-                fileNameDisplay.style.display = 'block';
-                analyzeButton.disabled = false;
-                statusText.textContent = 'Ready to analyze';
-            } else {
-                fileNameDisplay.style.display = 'none';
-                analyzeButton.disabled = true;
-                statusText.textContent = 'Please select an audio file';
-            }
-        }
-
-        function uploadAudio(event) {
-            event.preventDefault();
-            loader.style.display = 'flex';
-            analyzeButton.style.display = 'none';
-            statusText.textContent = 'Processing audio...';
-            results.classList.remove('show');
-            
-            let formData = new FormData(event.target);
-
-            fetch("/process_audio", {
-                method: "POST",
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                displayResults(data);
-                showSuccessAndReset();
-            })
-            .catch(error => {
-                console.error("Error:", error);
-                alert("An error occurred during processing. Please try again.");
-                statusText.textContent = 'Error occurred';
-                resetUI();
-            });
-        }
-
-        function displayResults(data) {
-            // Display summary
-            document.getElementById('summary-content').textContent = data.summary || 'No summary available';
-            
-            // Display sentiment
-            document.getElementById('sentiment-content').textContent = data.sentiment || 'No sentiment analysis available';
-            
-            // Display suggestions (handle both string and array formats)
-            const suggestionsContent = document.getElementById('suggestions-content');
-            if (data.suggestion) {
-                if (typeof data.suggestion === 'string') {
-                    // If it's a string with bullet points, convert to list
-                    const lines = data.suggestion.split('\n').filter(line => line.trim());
-                    if (lines.some(line => line.includes('*') || line.includes('•'))) {
-                        const listItems = lines
-                            .filter(line => line.includes('*') || line.includes('•'))
-                            .map(line => line.replace(/^[\*\•\-\d\.]\s*/, '').trim())
-                            .filter(line => line.length > 0);
-                        
-                        if (listItems.length > 0) {
-                            suggestionsContent.innerHTML = '<ul>' + 
-                                listItems.map(item => `<li>${item}</li>`).join('') + 
-                                '</ul>';
-                        } else {
-                            suggestionsContent.innerHTML = `<p>${data.suggestion}</p>`;
-                        }
-                    } else {
-                        suggestionsContent.innerHTML = `<p>${data.suggestion}</p>`;
-                    }
-                } else {
-                    suggestionsContent.innerHTML = '<p>No suggestions available</p>';
-                }
-            } else {
-                suggestionsContent.innerHTML = '<p>No suggestions available</p>';
-            }
-            
-            results.classList.add('show');
-        }
-        
-        function showSuccessAndReset() {
-            loader.style.display = 'none';
-            analyzeButton.style.display = 'block';
-            analyzeButton.classList.add('success');
-            analyzeButton.innerHTML = '<i class="fas fa-check"></i> Analysis Complete!';
-            analyzeButton.disabled = true;
-            statusText.textContent = 'Analysis completed successfully';
-
-            setTimeout(() => {
-                resetUI();
-            }, 3000);
-        }
-
-        function resetUI() {
-            analyzeButton.classList.remove('success');
-            analyzeButton.innerHTML = '<i class="fas fa-brain"></i> Analyze Audio';
-            analyzeButton.disabled = false;
-            uploadForm.reset();
-            updateFileDisplay();
-        }
-
-    </script>
+    <!-- Scripts -->
+    <script src="scripts/app.js"></script>
 </body>
 </html>

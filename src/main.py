@@ -5,6 +5,8 @@ import logging
 from typing import Dict, Optional
 from gemini_module import summarize_transcript, analyze_sentiment, suggest_counsellor_response
 from whisper_module import transcribe_audio
+from sentiment_analyzer import EnhancedSentimentAnalyzer
+
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -109,6 +111,89 @@ def process_audio(filepath: str) -> Dict[str, str]:
         error_msg = f"Processing failed: {str(e)}"
         logger.error(error_msg)
         return {"error": error_msg}
+    
+def process_audio(filepath: str) -> Dict[str, str]:
+    """
+    Process audio file through transcription and AI analysis pipeline.
+    
+    Args:
+        filepath: Path to the audio file to process
+        
+    Returns:
+        Dictionary containing transcript, summary, sentiment, and suggestions
+    """
+    try:
+        logger.info(f"Starting audio processing for: {filepath}")
+        
+        # Step 1: Validate input
+        validate_audio_file(filepath)
+        
+        # Step 2: Transcribe audio using Whisper
+        logger.info("Starting transcription...")
+        transcript = transcribe_audio(filepath)
+        
+        if not transcript or transcript.strip() == "":
+            raise ValueError("Transcription failed or returned empty result")
+        
+        logger.info(f"Transcription completed. Length: {len(transcript)} characters")
+        
+        # Step 3: Enhanced Sentiment Analysis
+        logger.info("Starting enhanced sentiment analysis...")
+        sentiment_analyzer = EnhancedSentimentAnalyzer()
+        detailed_sentiment = sentiment_analyzer.analyze_sentiment(transcript)
+        
+        # Step 4: AI Analysis with error handling
+        summary = ""
+        gemini_sentiment = ""
+        suggestions = ""
+        
+        try:
+            logger.info("Starting AI analysis...")
+            summary = summarize_transcript(transcript)
+        except Exception as e:
+            logger.error(f"Summary generation failed: {e}")
+            summary = f"Summary generation failed: {str(e)}"
+        
+        try:
+            gemini_sentiment = analyze_sentiment(transcript)
+        except Exception as e:
+            logger.error(f"Gemini sentiment analysis failed: {e}")
+            gemini_sentiment = f"Gemini sentiment analysis failed: {str(e)}"
+        
+        try:
+            suggestions = suggest_counsellor_response(transcript)
+        except Exception as e:
+            logger.error(f"Suggestion generation failed: {e}")
+            suggestions = f"Suggestion generation failed: {str(e)}"
+        
+        response = {
+            "transcript": transcript,
+            "summary": summary,
+            "sentiment": {
+                "gemini_analysis": gemini_sentiment,
+                "detailed_scores": detailed_sentiment
+            },
+            "suggestion": suggestions
+        }
+        
+        logger.info("Audio processing completed successfully")
+        return response
+        
+    except FileNotFoundError as e:
+        error_msg = f"File not found: {str(e)}"
+        logger.error(error_msg)
+        return {"error": error_msg}
+    
+    except ValueError as e:
+        error_msg = f"Invalid input: {str(e)}"
+        logger.error(error_msg)
+        return {"error": error_msg}
+    
+    except Exception as e:
+        error_msg = f"Processing failed: {str(e)}"
+        logger.error(error_msg)
+        return {"error": error_msg}
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(

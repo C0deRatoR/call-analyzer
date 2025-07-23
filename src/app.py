@@ -2,14 +2,22 @@ import os
 import uuid
 import logging
 import werkzeug.utils
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify , send_from_directory
 from main import process_audio
+
+template_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'web'))
+static_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'web'))
+
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = Flask(__name__, template_folder="../web", static_folder="../web")
+app = Flask(__name__, 
+            template_folder="../web", 
+            static_folder="../web",
+            static_url_path="")
+
 
 # Configuration
 UPLOAD_FOLDER = "uploads"
@@ -64,6 +72,15 @@ def generate_secure_filename(original_filename: str) -> str:
     file_ext = os.path.splitext(original_filename.lower())[1]
     unique_filename = f"{uuid.uuid4()}{file_ext}"
     return unique_filename
+
+
+@app.route('/styles/<path:filename>')
+def serve_styles(filename):
+    return send_from_directory(os.path.join(static_dir, 'styles'), filename)
+
+@app.route('/scripts/<path:filename>')  
+def serve_scripts(filename):
+    return send_from_directory(os.path.join(static_dir, 'scripts'), filename)
 
 @app.route("/", methods=["GET"])
 def index():
