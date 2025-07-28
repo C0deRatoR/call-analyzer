@@ -3,10 +3,7 @@
 
 Transform your audio conversations into actionable insights with advanced AI transcription, sentiment analysis, and professional counselor recommendations.
 
-[
-[
-[
-[
+
 
 ## ✨ Features
 
