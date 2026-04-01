@@ -60,6 +60,13 @@ class CallAnalyzer {
         this.transcriptTurns = document.getElementById('transcriptTurns');
         this.toggleTranscriptBtn = document.getElementById('toggleTranscript');
         this.languageBadge = document.getElementById('languageBadge');
+
+        // Emotion elements
+        this.dominantEmotionBadge = document.getElementById('dominantEmotionBadge');
+        this.emotionDistribution = document.getElementById('emotionDistribution');
+        this.emotionTimeline = document.getElementById('emotionTimeline');
+        this.emotionTimelineSection = document.getElementById('emotionTimelineSection');
+        this.toggleEmotionBtn = document.getElementById('toggleEmotionDetails');
         
         // Action buttons
         this.analyzeAnotherBtn = document.getElementById('analyzeAnother');
@@ -95,6 +102,9 @@ class CallAnalyzer {
         
         // Transcript toggle
         this.toggleTranscriptBtn.addEventListener('click', () => this.toggleTranscriptView());
+
+        // Emotion timeline toggle
+        this.toggleEmotionBtn.addEventListener('click', () => this.toggleEmotionTimeline());
         
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => this.handleKeyboardShortcuts(e));
@@ -318,6 +328,10 @@ class CallAnalyzer {
         } else if (data.transcript) {
             this.transcriptTurns.innerHTML = `<p class="plain-transcript">${data.transcript}</p>`;
         }
+        // Display emotions
+        if (data.emotions && !data.emotions.error) {
+            this.displayEmotions(data.emotions);
+        }
 
         // Display summary
         this.summaryContent.textContent = data.summary || 'No summary available';
@@ -451,7 +465,10 @@ class CallAnalyzer {
             turnEl.innerHTML = `
                 <div class="turn-header">
                     <span class="speaker-label ${speakerClass}">${turn.speaker}</span>
-                    <span class="turn-timestamp">${timestamp}</span>
+                    <div class="turn-meta">
+                        ${turn.emotion ? `<span class="emotion-tag emotion-${turn.emotion.primary_emotion}">${this.getEmotionEmoji(turn.emotion.primary_emotion)} ${turn.emotion.primary_emotion}</span>` : ''}
+                        <span class="turn-timestamp">${timestamp}</span>
+                    </div>
                 </div>
                 <p class="turn-text">${turn.text}</p>
             `;
@@ -465,6 +482,81 @@ class CallAnalyzer {
 
         const icon = this.toggleTranscriptBtn.querySelector('i');
         icon.className = isCollapsed ? 'fas fa-chevron-up' : 'fas fa-chevron-down';
+    }
+
+    getEmotionEmoji(emotion) {
+        const emojis = {
+            joy: '😊', anger: '😠', sadness: '😢', fear: '😰',
+            surprise: '😮', disgust: '🤢', neutral: '😐', unknown: '❓'
+        };
+        return emojis[emotion] || '❓';
+    }
+
+    getEmotionColor(emotion) {
+        const colors = {
+            joy: '#22c55e', anger: '#ef4444', sadness: '#3b82f6',
+            fear: '#a855f7', surprise: '#f59e0b', disgust: '#84cc16',
+            neutral: '#6b7280', unknown: '#9ca3af'
+        };
+        return colors[emotion] || '#6b7280';
+    }
+
+    displayEmotions(emotions) {
+        // Dominant emotion badge
+        const dominant = emotions.dominant_emotion || 'unknown';
+        this.dominantEmotionBadge.textContent = `${this.getEmotionEmoji(dominant)} ${dominant}`;
+        this.dominantEmotionBadge.className = `emotion-badge emotion-${dominant}`;
+
+        // Distribution bars
+        this.emotionDistribution.innerHTML = '';
+        const distribution = emotions.emotion_distribution || {};
+        Object.entries(distribution).forEach(([emotion, ratio]) => {
+            const percentage = Math.round(ratio * 100);
+            const color = this.getEmotionColor(emotion);
+            const bar = document.createElement('div');
+            bar.className = 'emotion-bar-item';
+            bar.innerHTML = `
+                <div class="emotion-bar-label">
+                    <span>${this.getEmotionEmoji(emotion)} ${emotion}</span>
+                    <span class="emotion-bar-value">${percentage}%</span>
+                </div>
+                <div class="emotion-bar-track">
+                    <div class="emotion-bar-fill" style="width: 0%; background: ${color};"></div>
+                </div>
+            `;
+            this.emotionDistribution.appendChild(bar);
+            // Animate bar fill
+            setTimeout(() => {
+                bar.querySelector('.emotion-bar-fill').style.width = `${percentage}%`;
+            }, 300);
+        });
+
+        // Timeline
+        const timeline = emotions.emotion_timeline || [];
+        if (timeline.length > 0) {
+            this.emotionTimeline.innerHTML = '';
+            timeline.forEach((item, i) => {
+                const dot = document.createElement('div');
+                dot.className = `timeline-dot emotion-${item.emotion}`;
+                dot.style.animationDelay = `${i * 0.08}s`;
+                const mins = Math.floor(item.start / 60);
+                const secs = Math.floor(item.start % 60);
+                dot.innerHTML = `
+                    <span class="timeline-emoji">${this.getEmotionEmoji(item.emotion)}</span>
+                    <span class="timeline-speaker">${item.speaker}</span>
+                    <span class="timeline-time">${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}</span>
+                `;
+                this.emotionTimeline.appendChild(dot);
+            });
+        }
+    }
+
+    toggleEmotionTimeline() {
+        const section = this.emotionTimelineSection;
+        const isVisible = section.style.display !== 'none';
+        section.style.display = isVisible ? 'none' : 'block';
+        const icon = this.toggleEmotionBtn.querySelector('i');
+        icon.className = isVisible ? 'fas fa-chevron-down' : 'fas fa-chevron-up';
     }
 
     resetAnalysis() {

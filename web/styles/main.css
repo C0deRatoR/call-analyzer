@@ -1134,3 +1134,147 @@ button:focus,
 .transcript-turns::-webkit-scrollbar-thumb:hover {
     background: var(--text-muted);
 }
+
+/* ===== Emotion Analysis Styles ===== */
+
+.emotion-overview {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 1.5rem;
+}
+
+.dominant-emotion {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.dominant-emotion .label {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.emotion-badge {
+    padding: 0.5rem 1.25rem;
+    border-radius: 2rem;
+    font-weight: 600;
+    font-size: 1rem;
+    text-transform: capitalize;
+    background: var(--bg-secondary);
+    border: 2px solid var(--border-color);
+}
+
+.emotion-badge.emotion-joy { background: rgba(34, 197, 94, 0.1); border-color: #22c55e; color: #22c55e; }
+.emotion-badge.emotion-anger { background: rgba(239, 68, 68, 0.1); border-color: #ef4444; color: #ef4444; }
+.emotion-badge.emotion-sadness { background: rgba(59, 130, 246, 0.1); border-color: #3b82f6; color: #3b82f6; }
+.emotion-badge.emotion-fear { background: rgba(168, 85, 247, 0.1); border-color: #a855f7; color: #a855f7; }
+.emotion-badge.emotion-surprise { background: rgba(245, 158, 11, 0.1); border-color: #f59e0b; color: #f59e0b; }
+.emotion-badge.emotion-disgust { background: rgba(132, 204, 22, 0.1); border-color: #84cc16; color: #84cc16; }
+.emotion-badge.emotion-neutral { background: rgba(107, 114, 128, 0.1); border-color: #6b7280; color: #6b7280; }
+
+/* Emotion distribution bars */
+.emotion-distribution {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.emotion-bar-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.emotion-bar-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    text-transform: capitalize;
+}
+
+.emotion-bar-value {
+    font-weight: 600;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.emotion-bar-track {
+    height: 8px;
+    background: var(--bg-secondary);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.emotion-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.8s ease-out;
+}
+
+/* Emotion timeline */
+.emotion-timeline-section {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.emotion-timeline-section h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+}
+
+.emotion-timeline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.timeline-dot {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.3rem 0.6rem;
+    border-radius: 2rem;
+    font-size: 0.75rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    animation: fadeInUp 0.3s ease-out both;
+}
+
+.timeline-emoji { font-size: 0.9rem; }
+.timeline-speaker { font-weight: 600; color: var(--text-primary); }
+.timeline-time { color: var(--text-muted); font-family: monospace; font-size: 0.7rem; }
+
+/* Emotion tags on transcript turns */
+.turn-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.emotion-tag {
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 0.15rem 0.5rem;
+    border-radius: 1rem;
+    text-transform: capitalize;
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+}
+
+.emotion-tag.emotion-joy { background: rgba(34, 197, 94, 0.12); color: #22c55e; }
+.emotion-tag.emotion-anger { background: rgba(239, 68, 68, 0.12); color: #ef4444; }
+.emotion-tag.emotion-sadness { background: rgba(59, 130, 246, 0.12); color: #3b82f6; }
+.emotion-tag.emotion-fear { background: rgba(168, 85, 247, 0.12); color: #a855f7; }
+.emotion-tag.emotion-surprise { background: rgba(245, 158, 11, 0.12); color: #f59e0b; }
+.emotion-tag.emotion-disgust { background: rgba(132, 204, 22, 0.12); color: #84cc16; }
+.emotion-tag.emotion-neutral { background: rgba(107, 114, 128, 0.12); color: #6b7280; }

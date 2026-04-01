@@ -7,6 +7,7 @@ from gemini_module import summarize_transcript, analyze_sentiment, suggest_couns
 from whisper_module import transcribe_audio_with_segments
 from sentiment_analyzer import EnhancedSentimentAnalyzer
 from diarization import diarize_from_segments, format_diarized_transcript
+from emotion_detector import detect_emotions_per_turn, get_emotion_summary
 
 
 # Configure logging
@@ -73,6 +74,17 @@ def process_audio(filepath: str) -> Dict[str, str]:
         formatted_transcript = format_diarized_transcript(diarized_turns)
         logger.info(f"Diarization completed. {len(diarized_turns)} speaker turns detected.")
         
+        # Step 2.7: Emotion Detection (HuggingFace Transformer)
+        logger.info("Starting emotion detection...")
+        emotion_summary = {}
+        try:
+            diarized_turns = detect_emotions_per_turn(diarized_turns)
+            emotion_summary = get_emotion_summary(diarized_turns)
+            logger.info(f"Emotion detection completed. Dominant emotion: {emotion_summary.get('dominant_emotion', 'unknown')}")
+        except Exception as e:
+            logger.error(f"Emotion detection failed: {e}")
+            emotion_summary = {"error": str(e)}
+        
         # Step 3: Enhanced Sentiment Analysis
         logger.info("Starting enhanced sentiment analysis...")
         sentiment_analyzer = EnhancedSentimentAnalyzer()
@@ -112,7 +124,8 @@ def process_audio(filepath: str) -> Dict[str, str]:
                 "gemini_analysis": gemini_sentiment,
                 "detailed_scores": detailed_sentiment
             },
-            "suggestion": suggestions
+            "suggestion": suggestions,
+            "emotions": emotion_summary
         }
         
         logger.info("Audio processing completed successfully")
