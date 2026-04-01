@@ -4,8 +4,9 @@ import argparse
 import logging
 from typing import Dict, Optional
 from gemini_module import summarize_transcript, analyze_sentiment, suggest_counsellor_response
-from whisper_module import transcribe_audio
+from whisper_module import transcribe_audio_with_segments
 from sentiment_analyzer import EnhancedSentimentAnalyzer
+from diarization import diarize_from_segments, format_diarized_transcript
 
 
 # Configure logging
@@ -54,14 +55,23 @@ def process_audio(filepath: str) -> Dict[str, str]:
         # Step 1: Validate input
         validate_audio_file(filepath)
         
-        # Step 2: Transcribe audio using Whisper
+        # Step 2: Transcribe audio using Whisper (with timestamps)
         logger.info("Starting transcription...")
-        transcript = transcribe_audio(filepath)
+        transcription_result = transcribe_audio_with_segments(filepath)
+        transcript = transcription_result["text"]
+        segments = transcription_result["segments"]
+        detected_language = transcription_result.get("language", "unknown")
         
         if not transcript or transcript.strip() == "":
             raise ValueError("Transcription failed or returned empty result")
         
-        logger.info(f"Transcription completed. Length: {len(transcript)} characters")
+        logger.info(f"Transcription completed. Length: {len(transcript)} characters, Language: {detected_language}")
+        
+        # Step 2.5: Speaker Diarization
+        logger.info("Starting speaker diarization...")
+        diarized_turns = diarize_from_segments(segments)
+        formatted_transcript = format_diarized_transcript(diarized_turns)
+        logger.info(f"Diarization completed. {len(diarized_turns)} speaker turns detected.")
         
         # Step 3: Enhanced Sentiment Analysis
         logger.info("Starting enhanced sentiment analysis...")
@@ -94,6 +104,9 @@ def process_audio(filepath: str) -> Dict[str, str]:
         
         response = {
             "transcript": transcript,
+            "diarized_turns": diarized_turns,
+            "formatted_transcript": formatted_transcript,
+            "language": detected_language,
             "summary": summary,
             "sentiment": {
                 "gemini_analysis": gemini_sentiment,

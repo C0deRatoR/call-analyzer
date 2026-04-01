@@ -56,6 +56,11 @@ class CallAnalyzer {
         this.emotionalIndicators = document.getElementById('emotionalIndicators');
         this.indicatorsList = document.getElementById('indicatorsList');
         
+        // Transcript elements
+        this.transcriptTurns = document.getElementById('transcriptTurns');
+        this.toggleTranscriptBtn = document.getElementById('toggleTranscript');
+        this.languageBadge = document.getElementById('languageBadge');
+        
         // Action buttons
         this.analyzeAnotherBtn = document.getElementById('analyzeAnother');
         this.exportResultsBtn = document.getElementById('exportResults');
@@ -87,6 +92,9 @@ class CallAnalyzer {
         
         // Theme toggle
         this.themeToggle.addEventListener('click', () => this.toggleTheme());
+        
+        // Transcript toggle
+        this.toggleTranscriptBtn.addEventListener('click', () => this.toggleTranscriptView());
         
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => this.handleKeyboardShortcuts(e));
@@ -304,6 +312,13 @@ class CallAnalyzer {
     }
 
     displayResults(data) {
+        // Display transcript
+        if (data.diarized_turns && data.diarized_turns.length > 0) {
+            this.displayTranscript(data.diarized_turns, data.language);
+        } else if (data.transcript) {
+            this.transcriptTurns.innerHTML = `<p class="plain-transcript">${data.transcript}</p>`;
+        }
+
         // Display summary
         this.summaryContent.textContent = data.summary || 'No summary available';
         
@@ -412,6 +427,44 @@ class CallAnalyzer {
         if (!isVisible) {
             this.sentimentDetails.classList.add('slide-up');
         }
+    }
+
+    displayTranscript(turns, language) {
+        this.transcriptTurns.innerHTML = '';
+
+        // Show detected language badge
+        if (language && language !== 'unknown') {
+            this.languageBadge.textContent = language.toUpperCase();
+            this.languageBadge.style.display = 'inline-block';
+        }
+
+        turns.forEach((turn, index) => {
+            const turnEl = document.createElement('div');
+            const speakerClass = turn.speaker.toLowerCase().replace(/\s+/g, '-');
+            turnEl.className = `transcript-turn ${speakerClass}`;
+            turnEl.style.animationDelay = `${index * 0.05}s`;
+
+            const mins = Math.floor(turn.start / 60);
+            const secs = Math.floor(turn.start % 60);
+            const timestamp = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+
+            turnEl.innerHTML = `
+                <div class="turn-header">
+                    <span class="speaker-label ${speakerClass}">${turn.speaker}</span>
+                    <span class="turn-timestamp">${timestamp}</span>
+                </div>
+                <p class="turn-text">${turn.text}</p>
+            `;
+            this.transcriptTurns.appendChild(turnEl);
+        });
+    }
+
+    toggleTranscriptView() {
+        const isCollapsed = this.transcriptTurns.classList.contains('collapsed');
+        this.transcriptTurns.classList.toggle('collapsed');
+
+        const icon = this.toggleTranscriptBtn.querySelector('i');
+        icon.className = isCollapsed ? 'fas fa-chevron-up' : 'fas fa-chevron-down';
     }
 
     resetAnalysis() {
