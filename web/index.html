@@ -7,6 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="styles/main.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
     <!-- Navigation Header -->
@@ -139,6 +140,16 @@
         <!-- Results Section -->
         <section class="results-section" id="resultsSection" style="display: none;">
             <div class="container">
+
+                <!-- Results Tab Bar -->
+                <div class="results-tab-bar">
+                    <button class="results-tab active" id="tabCards" data-tab="cards">
+                        <i class="fas fa-list"></i> Analysis Cards
+                    </button>
+                    <button class="results-tab" id="tabDashboard" data-tab="dashboard">
+                        <i class="fas fa-chart-bar"></i> Visual Dashboard
+                    </button>
+                </div>
                 <!-- Transcript Card -->
                 <div class="result-card transcript-card">
                     <div class="card-header">
@@ -307,8 +318,65 @@
                     </div>
                 </div>
 
+            </div><!-- end cards tab -->
+
+            <!-- Dashboard Tab Content -->
+            <div class="dashboard-tab" id="dashboardTab" style="display: none;">
+                <div class="dashboard-header">
+                    <h2 class="dashboard-title"><i class="fas fa-chart-line"></i> Visual Dashboard</h2>
+                    <p class="dashboard-subtitle">Interactive visualizations of your call analysis</p>
+                </div>
+                <div class="charts-grid">
+
+                    <!-- Sentiment Pie Chart -->
+                    <div class="chart-card" id="chartCardSentiment">
+                        <div class="chart-card-header">
+                            <i class="fas fa-heart"></i>
+                            <h3>Sentiment Distribution</h3>
+                        </div>
+                        <div class="chart-card-body">
+                            <canvas id="sentimentPieChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Emotion Bar Chart -->
+                    <div class="chart-card" id="chartCardEmotion">
+                        <div class="chart-card-header">
+                            <i class="fas fa-theater-masks"></i>
+                            <h3>Emotion Distribution</h3>
+                        </div>
+                        <div class="chart-card-body">
+                            <canvas id="emotionBarChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Emotion Timeline Line Chart -->
+                    <div class="chart-card chart-card-wide" id="chartCardTimeline">
+                        <div class="chart-card-header">
+                            <i class="fas fa-wave-square"></i>
+                            <h3>Emotion Timeline</h3>
+                        </div>
+                        <div class="chart-card-body">
+                            <canvas id="emotionTimelineChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Keyword Bubble / Horizontal Bar Chart -->
+                    <div class="chart-card chart-card-wide" id="chartCardKeywords">
+                        <div class="chart-card-header">
+                            <i class="fas fa-tags"></i>
+                            <h3>Keyword Relevance</h3>
+                        </div>
+                        <div class="chart-card-body">
+                            <canvas id="keywordBarChart"></canvas>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
                 <!-- Action Buttons -->
-                <div class="action-buttons">
+                <div class="action-buttons" id="actionButtons">
                     <button class="btn btn-secondary" id="analyzeAnother">
                         <i class="fas fa-plus"></i>
                         Analyze Another File
@@ -318,7 +386,7 @@
                         Export Results
                     </button>
                 </div>
-            </div>
+            </div><!-- close container -->
         </section>
     </main>
 

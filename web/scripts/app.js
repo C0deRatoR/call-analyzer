@@ -3,6 +3,8 @@ class CallAnalyzer {
         this.currentFile = null;
         this.isProcessing = false;
         this.theme = localStorage.getItem('theme') || 'light';
+        this.charts = {}; // store Chart.js instances
+        this.lastData = null; // store last result for re-rendering charts on tab switch
         
         this.initializeElements();
         this.attachEventListeners();
@@ -79,6 +81,12 @@ class CallAnalyzer {
         
         // Theme toggle
         this.themeToggle = document.getElementById('themeToggle');
+
+        // Tab elements
+        this.tabCards = document.getElementById('tabCards');
+        this.tabDashboard = document.getElementById('tabDashboard');
+        this.dashboardTab = document.getElementById('dashboardTab');
+        this.cardsTab = document.querySelector('.results-section .container > .result-card, .results-section .container');
     }
 
     attachEventListeners() {
@@ -109,6 +117,10 @@ class CallAnalyzer {
 
         // Emotion timeline toggle
         this.toggleEmotionBtn.addEventListener('click', () => this.toggleEmotionTimeline());
+
+        // Tab switching
+        this.tabCards.addEventListener('click', () => this.switchTab('cards'));
+        this.tabDashboard.addEventListener('click', () => this.switchTab('dashboard'));
         
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => this.handleKeyboardShortcuts(e));
@@ -326,6 +338,8 @@ class CallAnalyzer {
     }
 
     displayResults(data) {
+        this.lastData = data; // store for chart re-render
+
         // Display transcript
         if (data.diarized_turns && data.diarized_turns.length > 0) {
             this.displayTranscript(data.diarized_turns, data.language);
@@ -360,9 +374,12 @@ class CallAnalyzer {
         // Display suggestions
         this.displaySuggestions(data.suggestion);
         
-        // Show results section
         this.resultsSection.style.display = 'block';
         this.resultsSection.classList.add('fade-in');
+
+        // Default to cards tab, render charts in background
+        this.switchTab('cards');
+        setTimeout(() => this.renderDashboardCharts(data), 600);
     }
 
     displaySentimentScores(detailedScores) {
@@ -677,6 +694,10 @@ Generated on: ${new Date().toLocaleString()}
         document.documentElement.setAttribute('data-theme', this.theme);
         localStorage.setItem('theme', this.theme);
         this.updateThemeIcon();
+        // Re-render charts with updated theme colors
+        if (this.lastData && this.dashboardTab && this.dashboardTab.style.display !== 'none') {
+            this.renderDashboardCharts(this.lastData);
+        }
     }
 
     updateThemeIcon() {
@@ -755,6 +776,271 @@ Generated on: ${new Date().toLocaleString()}
             case 'warning': return 'exclamation-triangle';
             default: return 'info-circle';
         }
+    }
+
+    // ===== TAB SWITCHING =====
+
+    switchTab(tab) {
+        const allCards = document.querySelectorAll('.results-section .result-card');
+        const actionBtns = document.getElementById('actionButtons');
+
+        if (tab === 'cards') {
+            allCards.forEach(c => c.style.display = 'block');
+            this.dashboardTab.style.display = 'none';
+            if (actionBtns) actionBtns.style.display = 'flex';
+            this.tabCards.classList.add('active');
+            this.tabDashboard.classList.remove('active');
+        } else {
+            allCards.forEach(c => c.style.display = 'none');
+            this.dashboardTab.style.display = 'block';
+            if (actionBtns) actionBtns.style.display = 'none';
+            this.tabDashboard.classList.add('active');
+            this.tabCards.classList.remove('active');
+            // Re-render charts whenever we switch to dashboard
+            if (this.lastData) this.renderDashboardCharts(this.lastData);
+        }
+    }
+
+    // ===== CHART RENDERING =====
+
+    destroyCharts() {
+        Object.values(this.charts).forEach(c => { if (c) c.destroy(); });
+        this.charts = {};
+    }
+
+    getChartDefaults() {
+        const isDark = this.theme === 'dark';
+        return {
+            textColor: isDark ? '#cbd5e1' : '#1e293b',
+            gridColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+            bgCard: isDark ? '#1e293b' : '#ffffff',
+        };
+    }
+
+    renderDashboardCharts(data) {
+        this.destroyCharts();
+        const defaults = this.getChartDefaults();
+        Chart.defaults.color = defaults.textColor;
+        Chart.defaults.font.family = "'Inter', sans-serif";
+
+        if (data.sentiment && data.sentiment.detailed_scores) {
+            this.renderSentimentPie(data.sentiment.detailed_scores, defaults);
+        }
+        if (data.emotions && !data.emotions.error) {
+            this.renderEmotionBar(data.emotions, defaults);
+            this.renderEmotionTimeline(data.emotions, defaults);
+        }
+        if (data.keywords && data.keywords.keywords && data.keywords.keywords.length > 0) {
+            this.renderKeywordBar(data.keywords.keywords, defaults);
+        }
+    }
+
+    renderSentimentPie(scores, defaults) {
+        const vader = scores.vader_scores;
+        const ctx = document.getElementById('sentimentPieChart').getContext('2d');
+        this.charts.sentimentPie = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Positive', 'Negative', 'Neutral'],
+                datasets: [{
+                    data: [
+                        Math.round(vader.positive * 100),
+                        Math.round(vader.negative * 100),
+                        Math.round(vader.neutral * 100)
+                    ],
+                    backgroundColor: ['#10b981', '#ef4444', '#6b7280'],
+                    borderColor: defaults.bgCard,
+                    borderWidth: 3,
+                    hoverOffset: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                animation: { animateRotate: true, duration: 900 },
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { padding: 16, font: { size: 13 }, color: defaults.textColor }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => ` ${ctx.label}: ${ctx.parsed}%`
+                        }
+                    }
+                },
+                cutout: '62%'
+            }
+        });
+    }
+
+    renderEmotionBar(emotions, defaults) {
+        const distribution = emotions.emotion_distribution || {};
+        const emotionColors = {
+            joy: '#22c55e', anger: '#ef4444', sadness: '#3b82f6',
+            fear: '#a855f7', surprise: '#f59e0b', disgust: '#84cc16', neutral: '#6b7280'
+        };
+        const labels = Object.keys(distribution).map(e => `${this.getEmotionEmoji(e)} ${e}`);
+        const values = Object.values(distribution).map(v => Math.round(v * 100));
+        const bgColors = Object.keys(distribution).map(e => emotionColors[e] || '#6b7280');
+
+        const ctx = document.getElementById('emotionBarChart').getContext('2d');
+        this.charts.emotionBar = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels,
+                datasets: [{
+                    label: 'Distribution (%)',
+                    data: values,
+                    backgroundColor: bgColors.map(c => c + 'cc'),
+                    borderColor: bgColors,
+                    borderWidth: 2,
+                    borderRadius: 6,
+                    borderSkipped: false
+                }]
+            },
+            options: {
+                responsive: true,
+                animation: { duration: 900 },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: { callback: v => v + '%', color: defaults.textColor },
+                        grid: { color: defaults.gridColor }
+                    },
+                    x: {
+                        ticks: { color: defaults.textColor },
+                        grid: { display: false }
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.y}%` } }
+                }
+            }
+        });
+    }
+
+    renderEmotionTimeline(emotions, defaults) {
+        const timeline = emotions.emotion_timeline || [];
+        if (timeline.length === 0) return;
+
+        const emotionToNum = {
+            joy: 6, surprise: 5, neutral: 4, disgust: 3, fear: 2, sadness: 1, anger: 0
+        };
+        const numToLabel = ['anger', 'sadness', 'fear', 'disgust', 'neutral', 'surprise', 'joy'];
+        const emotionColors = {
+            joy: '#22c55e', anger: '#ef4444', sadness: '#3b82f6',
+            fear: '#a855f7', surprise: '#f59e0b', disgust: '#84cc16', neutral: '#6b7280'
+        };
+
+        const timeLabels = timeline.map((item, i) => {
+            const m = Math.floor(item.start / 60);
+            const s = Math.floor(item.start % 60);
+            return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+        });
+        const dataPoints = timeline.map(item => emotionToNum[item.emotion] ?? 4);
+        const pointColors = timeline.map(item => emotionColors[item.emotion] || '#6b7280');
+        const speakers = timeline.map(item => item.speaker);
+
+        const ctx = document.getElementById('emotionTimelineChart').getContext('2d');
+        this.charts.emotionTimeline = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: timeLabels,
+                datasets: [{
+                    label: 'Emotion',
+                    data: dataPoints,
+                    borderColor: 'rgba(139, 92, 246, 0.8)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: {
+                        target: 'origin',
+                        above: 'rgba(139, 92, 246, 0.08)'
+                    },
+                    pointBackgroundColor: pointColors,
+                    pointBorderColor: pointColors,
+                    pointRadius: 6,
+                    pointHoverRadius: 9
+                }]
+            },
+            options: {
+                responsive: true,
+                animation: { duration: 1000 },
+                scales: {
+                    y: {
+                        min: 0,
+                        max: 6,
+                        ticks: {
+                            stepSize: 1,
+                            callback: v => `${this.getEmotionEmoji(numToLabel[v])} ${numToLabel[v]}`,
+                            color: defaults.textColor
+                        },
+                        grid: { color: defaults.gridColor }
+                    },
+                    x: {
+                        ticks: { color: defaults.textColor, maxRotation: 45 },
+                        grid: { display: false }
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            title: (items) => `Time: ${items[0].label}`,
+                            label: (ctx) => ` ${speakers[ctx.dataIndex]}: ${this.getEmotionEmoji(numToLabel[ctx.parsed.y])} ${numToLabel[ctx.parsed.y]}`
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    renderKeywordBar(keywords, defaults) {
+        const labels = keywords.map(kw => kw.keyword);
+        const values = keywords.map(kw => Math.round(kw.score * 100));
+        const intensities = keywords.map((kw, i) => {
+            const alpha = Math.round(0.45 + (kw.score / keywords[0].score) * 0.55 * 255).toString(16).padStart(2, '0');
+            return `#3b82f6${alpha}`;
+        });
+
+        const ctx = document.getElementById('keywordBarChart').getContext('2d');
+        this.charts.keywordBar = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels,
+                datasets: [{
+                    label: 'Relevance (%)',
+                    data: values,
+                    backgroundColor: intensities,
+                    borderColor: '#3b82f6',
+                    borderWidth: 2,
+                    borderRadius: 6,
+                    borderSkipped: false
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                animation: { duration: 900 },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: { callback: v => v + '%', color: defaults.textColor },
+                        grid: { color: defaults.gridColor }
+                    },
+                    y: {
+                        ticks: { color: defaults.textColor, font: { size: 13 } },
+                        grid: { display: false }
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.x}% relevance` } }
+                }
+            }
+        });
     }
 }
 
