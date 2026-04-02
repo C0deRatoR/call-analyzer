@@ -3,22 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Call Analyzer - AI-Powered Audio Intelligence</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <meta name="description" content="Call Analyzer — AI-powered audio intelligence platform. Upload any call recording and get real-time transcription, speaker diarization, sentiment analysis, emotion detection, and keyword extraction.">
+    <title>Call Analyzer — AI-Powered Audio Intelligence</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="styles/main.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
     <!-- Navigation Header -->
-    <nav class="navbar">
+    <nav class="navbar" id="navbar">
         <div class="nav-container">
             <div class="nav-brand">
-                <i class="fas fa-brain nav-icon"></i>
-                <span class="brand-text">Call Analyzer</span>
+                <div class="brand-logo">
+                    <i class="fas fa-brain"></i>
+                </div>
+                <span class="brand-text">Call<span class="brand-accent">Analyzer</span></span>
             </div>
             <div class="nav-actions">
-                <button class="theme-toggle" id="themeToggle">
+                <button class="theme-toggle" id="themeToggle" title="Toggle theme">
                     <i class="fas fa-moon"></i>
                 </button>
             </div>
@@ -27,61 +32,170 @@
 
     <!-- Main Content -->
     <main class="main-content">
+
         <!-- Hero Section -->
-        <section class="hero-section">
+        <section class="hero-section" id="heroSection">
+            <div class="hero-bg-mesh"></div>
+            <div class="hero-orbs">
+                <div class="orb orb-1"></div>
+                <div class="orb orb-2"></div>
+                <div class="orb orb-3"></div>
+            </div>
             <div class="container">
                 <div class="hero-content">
+                    <div class="hero-badge">
+                        <i class="fas fa-sparkles"></i>
+                        <span>Powered by Whisper · HuggingFace · Gemini AI</span>
+                    </div>
                     <h1 class="hero-title">
-                        <span class="gradient-text">AI-Powered</span>
-                        Call Analysis
+                        Understand Every<br>
+                        <span class="gradient-text">Conversation</span>
                     </h1>
                     <p class="hero-subtitle">
-                        Transform your audio conversations into actionable insights with advanced AI transcription and sentiment analysis
+                        Transform audio recordings into rich insights — speaker-labeled transcripts,
+                        emotion tracking, sentiment scores, and keyword extraction in seconds.
                     </p>
+                    <div class="hero-cta">
+                        <a href="#uploadSection" class="cta-btn">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            Upload & Analyze
+                        </a>
+                        <a href="#howItWorks" class="cta-btn cta-ghost">
+                            <i class="fas fa-play-circle"></i>
+                            How It Works
+                        </a>
+                    </div>
+                    <div class="hero-stats">
+                        <div class="stat-item">
+                            <span class="stat-value">6</span>
+                            <span class="stat-label">Emotions Detected</span>
+                        </div>
+                        <div class="stat-divider"></div>
+                        <div class="stat-item">
+                            <span class="stat-value">99%</span>
+                            <span class="stat-label">Transcription Accuracy</span>
+                        </div>
+                        <div class="stat-divider"></div>
+                        <div class="stat-item">
+                            <span class="stat-value">Real-time</span>
+                            <span class="stat-label">AI Analysis</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- How It Works Section -->
+        <section class="how-section" id="howItWorks">
+            <div class="container">
+                <div class="section-header">
+                    <span class="section-tag">Pipeline</span>
+                    <h2 class="section-title">How It Works</h2>
+                    <p class="section-subtitle">Six powerful AI models working together to analyze your audio</p>
+                </div>
+                <div class="steps-grid">
+                    <div class="step-card" style="--delay: 0s">
+                        <div class="step-number">01</div>
+                        <div class="step-icon-wrap">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                        </div>
+                        <h3>Upload Audio</h3>
+                        <p>Drag &amp; drop any MP3, WAV, M4A, or FLAC file. Up to 100MB supported.</p>
+                    </div>
+                    <div class="step-connector"></div>
+                    <div class="step-card" style="--delay: 0.1s">
+                        <div class="step-number">02</div>
+                        <div class="step-icon-wrap">
+                            <i class="fas fa-microphone-alt"></i>
+                        </div>
+                        <h3>Whisper Transcription</h3>
+                        <p>OpenAI Whisper converts speech to timestamped text with language detection.</p>
+                    </div>
+                    <div class="step-connector"></div>
+                    <div class="step-card" style="--delay: 0.2s">
+                        <div class="step-number">03</div>
+                        <div class="step-icon-wrap">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <h3>Speaker Diarization</h3>
+                        <p>Identifies and separates individual speakers throughout the conversation.</p>
+                    </div>
+                    <div class="step-connector"></div>
+                    <div class="step-card" style="--delay: 0.3s">
+                        <div class="step-number">04</div>
+                        <div class="step-icon-wrap">
+                            <i class="fas fa-theater-masks"></i>
+                        </div>
+                        <h3>Emotion Detection</h3>
+                        <p>HuggingFace transformer classifies joy, sadness, anger, fear, surprise per turn.</p>
+                    </div>
+                    <div class="step-connector"></div>
+                    <div class="step-card" style="--delay: 0.4s">
+                        <div class="step-number">05</div>
+                        <div class="step-icon-wrap">
+                            <i class="fas fa-heart"></i>
+                        </div>
+                        <h3>Sentiment Analysis</h3>
+                        <p>VADER + Gemini AI deliver dual-engine sentiment with qualitative insights.</p>
+                    </div>
+                    <div class="step-connector"></div>
+                    <div class="step-card" style="--delay: 0.5s">
+                        <div class="step-number">06</div>
+                        <div class="step-icon-wrap">
+                            <i class="fas fa-tags"></i>
+                        </div>
+                        <h3>Keyword Extraction</h3>
+                        <p>KeyBERT surfaces the most relevant topics and phrases using BERT embeddings.</p>
+                    </div>
                 </div>
             </div>
         </section>
 
         <!-- Upload Section -->
-        <section class="upload-section">
+        <section class="upload-section" id="uploadSection">
             <div class="container">
-                <div class="upload-card">
-                    <div class="upload-header">
-                        <i class="fas fa-cloud-upload-alt upload-icon"></i>
-                        <h2>Upload Audio File</h2>
-                        <p>Drop your audio file here or click to browse</p>
-                    </div>
-                    
+                <div class="section-header">
+                    <span class="section-tag">Analyze</span>
+                    <h2 class="section-title">Upload Your Recording</h2>
+                    <p class="section-subtitle">Drop any audio file and our AI pipeline will do the rest</p>
+                </div>
+                <div class="upload-card glass-card">
                     <form id="uploadForm" class="upload-form">
                         <div class="file-drop-zone" id="fileDropZone">
                             <div class="drop-zone-content">
                                 <div class="file-icon-wrapper">
                                     <i class="fas fa-file-audio file-icon"></i>
+                                    <div class="icon-ring"></div>
                                 </div>
                                 <div class="drop-text">
-                                    <span class="primary-text">Drop audio file here</span>
-                                    <span class="secondary-text">or click to browse</span>
+                                    <span class="primary-text">Drop your audio file here</span>
+                                    <span class="secondary-text">or click to browse files</span>
                                 </div>
                                 <div class="supported-formats">
-                                    <span>Supports: MP3, WAV, M4A, FLAC</span>
+                                    <span class="format-tag">MP3</span>
+                                    <span class="format-tag">WAV</span>
+                                    <span class="format-tag">M4A</span>
+                                    <span class="format-tag">FLAC</span>
                                 </div>
                             </div>
                             <input type="file" id="audioFile" name="audio_file" accept="audio/*" hidden>
                         </div>
-                        
+
                         <div class="file-info" id="fileInfo" style="display: none;">
                             <div class="file-details">
-                                <i class="fas fa-music"></i>
+                                <div class="file-icon-small">
+                                    <i class="fas fa-music"></i>
+                                </div>
                                 <div class="file-metadata">
                                     <span class="file-name" id="fileName"></span>
                                     <span class="file-size" id="fileSize"></span>
                                 </div>
-                                <button type="button" class="remove-file" id="removeFile">
+                                <button type="button" class="remove-file" id="removeFile" title="Remove file">
                                     <i class="fas fa-times"></i>
                                 </button>
                             </div>
                         </div>
-                        
+
                         <button type="submit" class="analyze-btn" id="analyzeBtn" disabled>
                             <span class="btn-text">
                                 <i class="fas fa-brain"></i>
@@ -91,6 +205,7 @@
                                 <div class="spinner"></div>
                                 <span>Processing...</span>
                             </div>
+                            <div class="btn-shine"></div>
                         </button>
                     </form>
                 </div>
@@ -100,39 +215,34 @@
         <!-- Processing Section -->
         <section class="processing-section" id="processingSection" style="display: none;">
             <div class="container">
-                <div class="processing-card">
+                <div class="processing-card glass-card">
+                    <div class="processing-icon-wrap">
+                        <div class="processing-pulse"></div>
+                        <i class="fas fa-brain processing-brain"></i>
+                    </div>
+                    <h3 class="processing-title">Analyzing Your Audio</h3>
                     <div class="processing-steps">
                         <div class="step" id="step1">
-                            <div class="step-icon">
-                                <i class="fas fa-upload"></i>
-                            </div>
+                            <div class="step-icon"><i class="fas fa-upload"></i></div>
                             <span class="step-text">Uploading</span>
                         </div>
                         <div class="step" id="step2">
-                            <div class="step-icon">
-                                <i class="fas fa-microphone"></i>
-                            </div>
+                            <div class="step-icon"><i class="fas fa-microphone"></i></div>
                             <span class="step-text">Transcribing</span>
                         </div>
                         <div class="step" id="step3">
-                            <div class="step-icon">
-                                <i class="fas fa-brain"></i>
-                            </div>
+                            <div class="step-icon"><i class="fas fa-brain"></i></div>
                             <span class="step-text">Analyzing</span>
                         </div>
                         <div class="step" id="step4">
-                            <div class="step-icon">
-                                <i class="fas fa-check"></i>
-                            </div>
+                            <div class="step-icon"><i class="fas fa-check"></i></div>
                             <span class="step-text">Complete</span>
                         </div>
                     </div>
                     <div class="progress-bar">
                         <div class="progress-fill" id="progressFill"></div>
                     </div>
-                    <div class="processing-status" id="processingStatus">
-                        Initializing analysis...
-                    </div>
+                    <div class="processing-status" id="processingStatus">Initializing analysis...</div>
                 </div>
             </div>
         </section>
@@ -144,20 +254,21 @@
                 <!-- Results Tab Bar -->
                 <div class="results-tab-bar">
                     <button class="results-tab active" id="tabCards" data-tab="cards">
-                        <i class="fas fa-list"></i> Analysis Cards
+                        <i class="fas fa-list-ul"></i> Analysis Cards
                     </button>
                     <button class="results-tab" id="tabDashboard" data-tab="dashboard">
                         <i class="fas fa-chart-bar"></i> Visual Dashboard
                     </button>
                 </div>
+
                 <!-- Transcript Card -->
                 <div class="result-card transcript-card">
                     <div class="card-header">
-                        <i class="fas fa-comments"></i>
+                        <div class="card-icon-wrap"><i class="fas fa-comments"></i></div>
                         <h3>Transcript</h3>
                         <div class="card-actions">
                             <span class="language-badge" id="languageBadge" style="display: none;"></span>
-                            <button class="toggle-details" id="toggleTranscript">
+                            <button class="toggle-details" id="toggleTranscript" title="Toggle transcript">
                                 <i class="fas fa-chevron-down"></i>
                             </button>
                         </div>
@@ -172,27 +283,26 @@
                 <!-- Summary Card -->
                 <div class="result-card">
                     <div class="card-header">
-                        <i class="fas fa-file-text"></i>
+                        <div class="card-icon-wrap"><i class="fas fa-file-alt"></i></div>
                         <h3>Summary</h3>
                     </div>
                     <div class="card-content">
-                        <p id="summaryContent">Summary will appear here...</p>
+                        <p id="summaryContent" class="summary-text">Summary will appear here...</p>
                     </div>
                 </div>
 
                 <!-- Sentiment Analysis Card -->
                 <div class="result-card sentiment-card">
                     <div class="card-header">
-                        <i class="fas fa-heart"></i>
+                        <div class="card-icon-wrap"><i class="fas fa-heart"></i></div>
                         <h3>Sentiment Analysis</h3>
                         <div class="card-actions">
-                            <button class="toggle-details" id="toggleSentimentDetails">
+                            <button class="toggle-details" id="toggleSentimentDetails" title="Show detailed scores">
                                 <i class="fas fa-chevron-down"></i>
                             </button>
                         </div>
                     </div>
                     <div class="card-content">
-                        <!-- AI Analysis -->
                         <div class="sentiment-overview">
                             <div class="sentiment-badge" id="sentimentBadge">Neutral</div>
                             <div class="confidence-score">
@@ -200,13 +310,10 @@
                                 <span class="value" id="confidenceValue">--</span>
                             </div>
                         </div>
-                        
                         <div class="ai-analysis">
                             <h4>AI Analysis</h4>
                             <p id="sentimentAnalysis">Sentiment analysis will appear here...</p>
                         </div>
-
-                        <!-- Detailed Scores -->
                         <div class="sentiment-details" id="sentimentDetails" style="display: none;">
                             <h4>Detailed Scores</h4>
                             <div class="score-bars">
@@ -238,12 +345,10 @@
                                     </div>
                                 </div>
                             </div>
-                            
                             <div class="compound-score">
                                 <span class="compound-label">Overall Score:</span>
                                 <span class="compound-value" id="compoundScore">0.000</span>
                             </div>
-
                             <div class="emotional-indicators" id="emotionalIndicators" style="display: none;">
                                 <h5>Emotional Indicators</h5>
                                 <div class="indicators-list" id="indicatorsList"></div>
@@ -255,10 +360,10 @@
                 <!-- Emotion Analysis Card -->
                 <div class="result-card emotion-card">
                     <div class="card-header">
-                        <i class="fas fa-theater-masks"></i>
+                        <div class="card-icon-wrap"><i class="fas fa-theater-masks"></i></div>
                         <h3>Emotion Analysis</h3>
                         <div class="card-actions">
-                            <button class="toggle-details" id="toggleEmotionDetails">
+                            <button class="toggle-details" id="toggleEmotionDetails" title="Show emotion timeline">
                                 <i class="fas fa-chevron-down"></i>
                             </button>
                         </div>
@@ -270,16 +375,10 @@
                                 <span class="emotion-badge" id="dominantEmotionBadge">--</span>
                             </div>
                         </div>
-
-                        <div class="emotion-distribution" id="emotionDistribution">
-                            <!-- Emotion bars rendered by JS -->
-                        </div>
-
+                        <div class="emotion-distribution" id="emotionDistribution"></div>
                         <div class="emotion-timeline-section" id="emotionTimelineSection" style="display: none;">
                             <h4>Emotion Timeline</h4>
-                            <div class="emotion-timeline" id="emotionTimeline">
-                                <!-- Timeline items rendered by JS -->
-                            </div>
+                            <div class="emotion-timeline" id="emotionTimeline"></div>
                         </div>
                     </div>
                 </div>
@@ -287,8 +386,8 @@
                 <!-- Keywords & Topics Card -->
                 <div class="result-card keyword-card">
                     <div class="card-header">
-                        <i class="fas fa-tags"></i>
-                        <h3>Keywords & Topics</h3>
+                        <div class="card-icon-wrap"><i class="fas fa-tags"></i></div>
+                        <h3>Keywords &amp; Topics</h3>
                         <div class="card-actions">
                             <span class="keyword-method-badge" id="keywordMethodBadge" style="display: none;"></span>
                         </div>
@@ -303,10 +402,10 @@
                 <!-- Suggestions Card -->
                 <div class="result-card">
                     <div class="card-header">
-                        <i class="fas fa-lightbulb"></i>
+                        <div class="card-icon-wrap"><i class="fas fa-lightbulb"></i></div>
                         <h3>AI Suggestions</h3>
                         <div class="card-actions">
-                            <button class="export-btn" id="exportSuggestions">
+                            <button class="export-btn" id="exportSuggestions" title="Export suggestions">
                                 <i class="fas fa-download"></i>
                             </button>
                         </div>
@@ -322,60 +421,46 @@
 
             <!-- Dashboard Tab Content -->
             <div class="dashboard-tab" id="dashboardTab" style="display: none;">
-                <div class="dashboard-header">
-                    <h2 class="dashboard-title"><i class="fas fa-chart-line"></i> Visual Dashboard</h2>
-                    <p class="dashboard-subtitle">Interactive visualizations of your call analysis</p>
-                </div>
-                <div class="charts-grid">
-
-                    <!-- Sentiment Pie Chart -->
-                    <div class="chart-card" id="chartCardSentiment">
-                        <div class="chart-card-header">
-                            <i class="fas fa-heart"></i>
-                            <h3>Sentiment Distribution</h3>
+                <div class="container">
+                    <div class="dashboard-header">
+                        <h2 class="dashboard-title"><i class="fas fa-chart-line"></i> Visual Dashboard</h2>
+                        <p class="dashboard-subtitle">Interactive visualizations of your call analysis</p>
+                    </div>
+                    <div class="charts-grid">
+                        <div class="chart-card" id="chartCardSentiment">
+                            <div class="chart-card-header">
+                                <div class="card-icon-wrap"><i class="fas fa-heart"></i></div>
+                                <h3>Sentiment Distribution</h3>
+                            </div>
+                            <div class="chart-card-body"><canvas id="sentimentPieChart"></canvas></div>
                         </div>
-                        <div class="chart-card-body">
-                            <canvas id="sentimentPieChart"></canvas>
+                        <div class="chart-card" id="chartCardEmotion">
+                            <div class="chart-card-header">
+                                <div class="card-icon-wrap"><i class="fas fa-theater-masks"></i></div>
+                                <h3>Emotion Distribution</h3>
+                            </div>
+                            <div class="chart-card-body"><canvas id="emotionBarChart"></canvas></div>
+                        </div>
+                        <div class="chart-card chart-card-wide" id="chartCardTimeline">
+                            <div class="chart-card-header">
+                                <div class="card-icon-wrap"><i class="fas fa-wave-square"></i></div>
+                                <h3>Emotion Timeline</h3>
+                            </div>
+                            <div class="chart-card-body"><canvas id="emotionTimelineChart"></canvas></div>
+                        </div>
+                        <div class="chart-card chart-card-wide" id="chartCardKeywords">
+                            <div class="chart-card-header">
+                                <div class="card-icon-wrap"><i class="fas fa-tags"></i></div>
+                                <h3>Keyword Relevance</h3>
+                            </div>
+                            <div class="chart-card-body"><canvas id="keywordBarChart"></canvas></div>
                         </div>
                     </div>
-
-                    <!-- Emotion Bar Chart -->
-                    <div class="chart-card" id="chartCardEmotion">
-                        <div class="chart-card-header">
-                            <i class="fas fa-theater-masks"></i>
-                            <h3>Emotion Distribution</h3>
-                        </div>
-                        <div class="chart-card-body">
-                            <canvas id="emotionBarChart"></canvas>
-                        </div>
-                    </div>
-
-                    <!-- Emotion Timeline Line Chart -->
-                    <div class="chart-card chart-card-wide" id="chartCardTimeline">
-                        <div class="chart-card-header">
-                            <i class="fas fa-wave-square"></i>
-                            <h3>Emotion Timeline</h3>
-                        </div>
-                        <div class="chart-card-body">
-                            <canvas id="emotionTimelineChart"></canvas>
-                        </div>
-                    </div>
-
-                    <!-- Keyword Bubble / Horizontal Bar Chart -->
-                    <div class="chart-card chart-card-wide" id="chartCardKeywords">
-                        <div class="chart-card-header">
-                            <i class="fas fa-tags"></i>
-                            <h3>Keyword Relevance</h3>
-                        </div>
-                        <div class="chart-card-body">
-                            <canvas id="keywordBarChart"></canvas>
-                        </div>
-                    </div>
-
                 </div>
             </div>
 
-                <!-- Action Buttons -->
+            <!-- Action Buttons -->
+            <div class="container">
                 <div class="action-buttons" id="actionButtons">
                     <button class="btn btn-secondary" id="analyzeAnother">
                         <i class="fas fa-plus"></i>
@@ -386,14 +471,27 @@
                         Export Results
                     </button>
                 </div>
-            </div><!-- close container -->
+            </div>
         </section>
     </main>
 
     <!-- Footer -->
     <footer class="footer">
         <div class="container">
-            <p>&copy; 2025 Call Analyzer. Built with AI-powered insights.</p>
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <div class="brand-logo brand-logo-sm">
+                        <i class="fas fa-brain"></i>
+                    </div>
+                    <span class="footer-brand-name">Call<span class="brand-accent">Analyzer</span></span>
+                </div>
+                <p class="footer-copy">&copy; 2025 CallAnalyzer. Built with Whisper · HuggingFace · Gemini AI.</p>
+                <div class="footer-tech">
+                    <span class="tech-badge"><i class="fas fa-microphone-alt"></i> Whisper</span>
+                    <span class="tech-badge"><i class="fas fa-robot"></i> HuggingFace</span>
+                    <span class="tech-badge"><i class="fas fa-gem"></i> Gemini</span>
+                </div>
+            </div>
         </div>
     </footer>
 
