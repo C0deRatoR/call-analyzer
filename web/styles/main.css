@@ -1278,3 +1278,57 @@ button:focus,
 .emotion-tag.emotion-surprise { background: rgba(245, 158, 11, 0.12); color: #f59e0b; }
 .emotion-tag.emotion-disgust { background: rgba(132, 204, 22, 0.12); color: #84cc16; }
 .emotion-tag.emotion-neutral { background: rgba(107, 114, 128, 0.12); color: #6b7280; }
+
+/* Keyword Tags */
+.keyword-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.625rem;
+    align-items: center;
+}
+
+.keyword-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 2rem;
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    font-weight: 500;
+    cursor: default;
+    transition: all var(--transition-fast);
+    animation: fadeInUp 0.4s ease-out both;
+}
+
+.keyword-tag:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--accent-primary);
+}
+
+.keyword-text {
+    text-transform: capitalize;
+}
+
+.keyword-score {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--accent-primary);
+    opacity: 0;
+    transition: opacity var(--transition-fast);
+}
+
+.keyword-tag:hover .keyword-score {
+    opacity: 1;
+}
+
+.keyword-method-badge {
+    padding: 0.25rem 0.625rem;
+    border-radius: 1rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--accent-primary);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+}

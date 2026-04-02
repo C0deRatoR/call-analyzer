@@ -8,6 +8,7 @@ from whisper_module import transcribe_audio_with_segments
 from sentiment_analyzer import EnhancedSentimentAnalyzer
 from diarization import diarize_from_segments, format_diarized_transcript
 from emotion_detector import detect_emotions_per_turn, get_emotion_summary
+from topic_extractor import extract_keywords
 
 
 # Configure logging
@@ -85,6 +86,16 @@ def process_audio(filepath: str) -> Dict[str, str]:
             logger.error(f"Emotion detection failed: {e}")
             emotion_summary = {"error": str(e)}
         
+        # Step 2.8: Keyword Extraction (KeyBERT)
+        logger.info("Starting keyword extraction...")
+        keywords_result = {}
+        try:
+            keywords_result = extract_keywords(transcript)
+            logger.info(f"Keyword extraction completed. {len(keywords_result.get('keywords', []))} keywords found via {keywords_result.get('method', 'unknown')}.")
+        except Exception as e:
+            logger.error(f"Keyword extraction failed: {e}")
+            keywords_result = {"keywords": [], "top_keywords": [], "error": str(e)}
+        
         # Step 3: Enhanced Sentiment Analysis
         logger.info("Starting enhanced sentiment analysis...")
         sentiment_analyzer = EnhancedSentimentAnalyzer()
@@ -125,7 +136,8 @@ def process_audio(filepath: str) -> Dict[str, str]:
                 "detailed_scores": detailed_sentiment
             },
             "suggestion": suggestions,
-            "emotions": emotion_summary
+            "emotions": emotion_summary,
+            "keywords": keywords_result
         }
         
         logger.info("Audio processing completed successfully")

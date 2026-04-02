@@ -67,6 +67,10 @@ class CallAnalyzer {
         this.emotionTimeline = document.getElementById('emotionTimeline');
         this.emotionTimelineSection = document.getElementById('emotionTimelineSection');
         this.toggleEmotionBtn = document.getElementById('toggleEmotionDetails');
+
+        // Keyword elements
+        this.keywordTags = document.getElementById('keywordTags');
+        this.keywordMethodBadge = document.getElementById('keywordMethodBadge');
         
         // Action buttons
         this.analyzeAnotherBtn = document.getElementById('analyzeAnother');
@@ -333,6 +337,11 @@ class CallAnalyzer {
             this.displayEmotions(data.emotions);
         }
 
+        // Display keywords
+        if (data.keywords && data.keywords.keywords && data.keywords.keywords.length > 0) {
+            this.displayKeywords(data.keywords);
+        }
+
         // Display summary
         this.summaryContent.textContent = data.summary || 'No summary available';
         
@@ -557,6 +566,42 @@ class CallAnalyzer {
         section.style.display = isVisible ? 'none' : 'block';
         const icon = this.toggleEmotionBtn.querySelector('i');
         icon.className = isVisible ? 'fas fa-chevron-down' : 'fas fa-chevron-up';
+    }
+
+    displayKeywords(keywordsData) {
+        this.keywordTags.innerHTML = '';
+
+        // Show method badge
+        if (keywordsData.method) {
+            this.keywordMethodBadge.textContent = keywordsData.method === 'keybert' ? 'KeyBERT' : 'TF-IDF';
+            this.keywordMethodBadge.style.display = 'inline-block';
+        }
+
+        const keywords = keywordsData.keywords || [];
+        const maxScore = keywords.length > 0 ? keywords[0].score : 1;
+
+        keywords.forEach((kw, index) => {
+            const tag = document.createElement('span');
+            tag.className = 'keyword-tag';
+            tag.style.animationDelay = `${index * 0.06}s`;
+
+            // Scale font size by relevance (0.8rem to 1.15rem)
+            const relativeScore = kw.score / maxScore;
+            const fontSize = 0.8 + relativeScore * 0.35;
+            tag.style.fontSize = `${fontSize}rem`;
+
+            // Higher scores get more opaque gradient
+            const opacity = 0.08 + relativeScore * 0.12;
+            tag.style.background = `rgba(59, 130, 246, ${opacity})`;
+
+            const scorePercent = Math.round(kw.score * 100);
+            tag.innerHTML = `
+                <span class="keyword-text">${kw.keyword}</span>
+                <span class="keyword-score">${scorePercent}%</span>
+            `;
+            tag.title = `Relevance: ${scorePercent}%`;
+            this.keywordTags.appendChild(tag);
+        });
     }
 
     resetAnalysis() {
