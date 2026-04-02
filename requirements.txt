@@ -9,3 +9,4 @@ openai-whisper>=20231117
 transformers>=4.36.0
 torch>=2.0.0
 keybert>=0.7.0
+fpdf2>=2.7.9

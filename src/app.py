@@ -1,6 +1,6 @@
 import os
 import logging
-from flask import Flask, render_template, request, jsonify, send_from_directory
+from flask import Flask, render_template, request, jsonify, send_from_directory, make_response
 from werkzeug.utils import secure_filename
 from werkzeug.exceptions import RequestEntityTooLarge
 import tempfile
@@ -9,6 +9,7 @@ from typing import Dict, Any
 
 # Import your modules
 from main import process_audio, validate_audio_file
+from report_generator import generate_pdf_report
 
 # Configure logging
 logging.basicConfig(
@@ -162,6 +163,30 @@ def create_app():
                 except Exception as e:
                     logger.warning(f"Failed to clean up temporary file: {e}")
     
+    @app.route('/export_pdf', methods=['POST'])
+    def export_pdf_route():
+        """Generate and return a PDF report from analysis JSON data."""
+        try:
+            data = request.get_json(silent=True)
+            if not data:
+                return jsonify({'error': 'No analysis data provided'}), 400
+
+            pdf_bytes = generate_pdf_report(data)
+
+            response = make_response(pdf_bytes)
+            response.headers['Content-Type'] = 'application/pdf'
+            response.headers['Content-Disposition'] = 'attachment; filename="call-analysis-report.pdf"'
+            response.headers['Content-Length'] = len(pdf_bytes)
+            logger.info("PDF report generated successfully")
+            return response
+
+        except ImportError:
+            logger.error("fpdf2 not installed")
+            return jsonify({'error': 'PDF generation requires fpdf2. Run: pip install fpdf2'}), 500
+        except Exception as e:
+            logger.error(f"PDF generation failed: {e}")
+            return jsonify({'error': f'PDF generation failed: {str(e)}'}), 500
+
     @app.route('/health')
     def health_check():
         """Health check endpoint for monitoring."""

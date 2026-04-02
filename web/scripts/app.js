@@ -638,26 +638,56 @@ class CallAnalyzer {
         document.querySelector('.upload-section').scrollIntoView({ behavior: 'smooth' });
     }
 
-    exportResults() {
+    async exportResults() {
+        if (!this.lastData) {
+            this.showNotification('No analysis data to export', 'warning');
+            return;
+        }
+
+        const btn = this.exportResultsBtn;
+        const originalHTML = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating PDF...';
+        btn.disabled = true;
+
+        try {
+            const response = await fetch('/export_pdf', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(this.lastData)
+            });
+
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.error || 'PDF generation failed');
+            }
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'call-analysis-report.pdf';
+            a.style.display = 'none';
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+            this.showNotification('PDF report downloaded!', 'success');
+
+        } catch (error) {
+            console.error('PDF export error:', error);
+            this.showNotification(`PDF export failed: ${error.message}. Falling back to text export.`, 'warning');
+            this._exportFallbackText();
+        } finally {
+            btn.innerHTML = originalHTML;
+            btn.disabled = false;
+        }
+    }
+
+    _exportFallbackText() {
         const summaryText = this.summaryContent.textContent;
         const sentimentText = this.sentimentAnalysis.textContent;
         const suggestionsText = this.suggestionsContent.textContent;
-        
-        const results = `Call Analysis Results
-========================
-
-Summary:
-${summaryText}
-
-Sentiment Analysis:
-${sentimentText}
-
-AI Suggestions:
-${suggestionsText}
-
-Generated on: ${new Date().toLocaleString()}
-`;
-        
+        const results = `Call Analysis Results\n========================\n\nSummary:\n${summaryText}\n\nSentiment Analysis:\n${sentimentText}\n\nAI Suggestions:\n${suggestionsText}\n\nGenerated: ${new Date().toLocaleString()}\n`;
         this.downloadTextFile(results, 'call-analysis-results.txt');
     }
 
