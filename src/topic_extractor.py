@@ -6,7 +6,7 @@ Falls back to simple TF-IDF extraction if KeyBERT model fails to load.
 
 import logging
 import re
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Tuple
 from collections import Counter
 
 logger = logging.getLogger(__name__)

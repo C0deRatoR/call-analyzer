@@ -57,7 +57,7 @@ def generate_pdf_report(data: Dict[str, Any]) -> bytes:
         Raw PDF bytes ready to return as a Flask response.
     """
     try:
-        from fpdf import FPDF, XPos, YPos
+        from fpdf import FPDF
     except ImportError:
         raise ImportError("fpdf2 is not installed. Run: pip install fpdf2")
 
@@ -73,7 +73,7 @@ def generate_pdf_report(data: Dict[str, Any]) -> bytes:
             self.set_y(3)
             self.set_font("Helvetica", "B", 11)
             self.set_text_color(255, 255, 255)
-            self.cell(0, 8, "  CallAnalyzer", align="L", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+            self.cell(0, 8, "  CallAnalyzer", align="L", new_x="LMARGIN", new_y="NEXT")
             self.ln(4)
 
         def footer(self):
@@ -215,7 +215,7 @@ def generate_pdf_report(data: Dict[str, Any]) -> bytes:
             # Speaker label
             pdf.set_font("Helvetica", "B", 8)
             pdf.set_text_color(*colour)
-            pdf.cell(0, 5, f"{speaker.upper()}  {ts_str}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+            pdf.cell(0, 5, f"{speaker.upper()}  {ts_str}", new_x="LMARGIN", new_y="NEXT")
 
             # Emotion badge (if present)
             if emotion and emotion.get("primary_emotion"):
@@ -223,7 +223,7 @@ def generate_pdf_report(data: Dict[str, Any]) -> bytes:
                 em_colour = EMOTION_COLOURS.get(em, C_TEXT_MID)
                 pdf.set_font("Helvetica", "I", 7.5)
                 pdf.set_text_color(*em_colour)
-                pdf.cell(0, 4, f"  [{em}]", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                pdf.cell(0, 4, f"  [{em}]", new_x="LMARGIN", new_y="NEXT")
 
             # Turn text
             pdf.set_font("Helvetica", "", 9.5)
@@ -242,11 +242,10 @@ def _section_title(pdf, text: str, is_main: bool = False):
     size = 20 if is_main else 14
     pdf.set_font("Helvetica", "B", size)
     pdf.set_text_color(*C_TEXT_DARK)
-    pdf.cell(0, 10, text, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    pdf.cell(0, 10, text, new_x="LMARGIN", new_y="NEXT")
 
 
 def _card_header(pdf, text: str):
-    from fpdf import XPos, YPos
     pdf.set_fill_color(*C_BG_CARD)
     pdf.set_draw_color(*C_BRAND)
     # Accent left bar
@@ -255,7 +254,7 @@ def _card_header(pdf, text: str):
     pdf.set_x(pdf.get_x() + 5)
     pdf.set_font("Helvetica", "B", 11)
     pdf.set_text_color(*C_TEXT_DARK)
-    pdf.cell(0, 7, text, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    pdf.cell(0, 7, text, new_x="LMARGIN", new_y="NEXT")
     # Underline
     y = pdf.get_y()
     pdf.set_draw_color(*C_BG_CARD)
@@ -264,29 +263,25 @@ def _card_header(pdf, text: str):
 
 
 def _mini_header(pdf, text: str):
-    from fpdf import XPos, YPos
     pdf.set_font("Helvetica", "B", 9)
     pdf.set_text_color(*C_TEXT_MID)
-    pdf.cell(0, 5, text.upper(), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    pdf.cell(0, 5, text.upper(), new_x="LMARGIN", new_y="NEXT")
     pdf.ln(1)
 
 
 def _body_text(pdf, text: str):
-    from fpdf import XPos, YPos
     pdf.set_font("Helvetica", "", 9.5)
     pdf.set_text_color(*C_TEXT_DARK)
     pdf.multi_cell(0, 5.5, text)
 
 
 def _sub_text(pdf, text: str):
-    from fpdf import XPos, YPos
     pdf.set_font("Helvetica", "I", 8.5)
     pdf.set_text_color(*C_TEXT_MID)
-    pdf.cell(0, 5, text, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    pdf.cell(0, 5, text, new_x="LMARGIN", new_y="NEXT")
 
 
 def _bullet_item(pdf, text: str):
-    from fpdf import XPos, YPos
     pdf.set_font("Helvetica", "", 9.5)
     pdf.set_text_color(*C_TEXT_DARK)
     # Bullet
@@ -295,7 +290,6 @@ def _bullet_item(pdf, text: str):
 
 
 def _label_pill(pdf, label: str, colour: tuple):
-    from fpdf import XPos, YPos
     r, g, b = colour
     pdf.set_fill_color(r, g, b)
     pdf.set_text_color(255, 255, 255)
@@ -303,7 +297,7 @@ def _label_pill(pdf, label: str, colour: tuple):
     pdf.cell(
         pdf.get_string_width(label) + 8, 6,
         label, fill=True,
-        new_x=XPos.LMARGIN, new_y=YPos.NEXT
+        new_x="LMARGIN", new_y="NEXT"
     )
     pdf.set_text_color(*C_TEXT_DARK)
     pdf.ln(2)
@@ -311,7 +305,6 @@ def _label_pill(pdf, label: str, colour: tuple):
 
 def _score_bar(pdf, label: str, value: float, colour: tuple):
     """Draw a labelled horizontal progress bar."""
-    from fpdf import XPos, YPos
     bar_w = 120
     bar_h = 4
     fill_w = int(bar_w * min(max(value, 0), 1))
@@ -338,4 +331,4 @@ def _score_bar(pdf, label: str, value: float, colour: tuple):
     pdf.set_xy(x + bar_w + 3, pdf.get_y())
     pdf.set_font("Helvetica", "B", 8)
     pdf.set_text_color(*C_TEXT_MID)
-    pdf.cell(14, 6, pct_str, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    pdf.cell(14, 6, pct_str, new_x="LMARGIN", new_y="NEXT")

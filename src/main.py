@@ -2,7 +2,7 @@ import os
 import json
 import argparse
 import logging
-from typing import Dict, Optional
+from typing import Dict
 from gemini_module import summarize_transcript, analyze_sentiment, suggest_counsellor_response
 from whisper_module import transcribe_audio_with_segments
 from sentiment_analyzer import EnhancedSentimentAnalyzer

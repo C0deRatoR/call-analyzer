@@ -109,6 +109,8 @@ def generate_text_with_retry(prompt: str, max_retries: int = 3, delay: float = 1
                 time.sleep(sleep_time)
             else:
                 raise RuntimeError(f"Failed to generate text after {max_retries + 1} attempts: {error_msg}")
+    
+    raise RuntimeError("Failed to generate text: Max retries exceeded")
 
 def summarize_transcript(transcript: str) -> str:
     """

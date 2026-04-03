@@ -8,7 +8,7 @@ Model: j-hartmann/emotion-english-distilroberta-base
 """
 
 import logging
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any
 
 logger = logging.getLogger(__name__)
 
@@ -184,7 +184,7 @@ def get_emotion_summary(turns: List[Dict]) -> Dict[str, Any]:
     }
 
     # Dominant emotion
-    dominant = max(emotion_counts, key=emotion_counts.get)
+    dominant = max(emotion_counts, key=lambda k: emotion_counts[k])
 
     return {
         "dominant_emotion": dominant,
