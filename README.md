@@ -1,240 +1,158 @@
+<div align="center">
 
-# 🎧 Call Analyzer - AI-Powered Audio Intelligence
+# 🎧 Call Analyzer
+**AI-Powered Audio Intelligence & Mentoring Guidance**
 
-Transform your audio conversations into actionable insights with advanced AI transcription, sentiment analysis, and professional counselor recommendations.
+[![Python 3.12](https://img.shields.io/badge/Python-3.12-blue.svg)](https://www.python.org/)
+[![Flask](https://img.shields.io/badge/Flask-Web_Framework-black.svg?logo=flask)](https://flask.palletsprojects.com/)
+[![Built with Gemini](https://img.shields.io/badge/Model-Google_Gemini-yellow.svg)](https://deepmind.google/technologies/gemini/)
+[![Whisper Audio](https://img.shields.io/badge/Audio-OpenAI_Whisper-brightgreen.svg)](https://github.com/openai/whisper)
+[![License: MIT](https://img.shields.io/badge/License-MIT-purple.svg)](https://opensource.org/licenses/MIT)
 
+Transform your audio conversations into actionable insights with state-of-the-art AI transcription, multi-model sentiment analysis, and professional counselor analytics. 
 
+![Call Analyzer Interactive Demo](assets/demo.webp)
 
-## ✨ Features
+</div>
 
-**🤖 Advanced AI Processing**
+<br/>
 
-- OpenAI Whisper Integration - State-of-the-art audio transcription
-- Google Gemini AI Analysis - Contextual conversation understanding
-- VADER Sentiment Analysis - Real-time numerical sentiment scoring
-- Dual Analysis System - Combined AI approaches for comprehensive insights
+## ✨ Key Features
 
-**🎨 Modern Interactive Interface**
+**🤖 Multi-Model AI Processing**
+*   **OpenAI Whisper Integration:** Precise, state-of-the-art audio handling and transcription natively on-machine.
+*   **Speaker Diarization:** Seamlessly separates individual speakers through pausing heuristics and context mapping.
+*   **Google Gemini Analysis:** Dynamic contextual understanding, automated transcript summarizations, and conversational advice.
+*   **BERT Topic Extraction & VADER Analysis:** Combined NLP strategies for robust sentiment breakdowns and high-relevance topic extraction.
 
-- Responsive Design - Beautiful interface that works on all devices
-- Dark/Light Theme Toggle - User preference with system detection
-- Drag-and-Drop Upload - Intuitive file handling with visual feedback
-- Real-time Processing Visualization - Animated steps showing analysis progress
-- Interactive Sentiment Dashboard - Visual progress bars and emotional indicators
+**🎨 Modern Glassmorphism Interface**
+*   **Responsive Dashboard:** Sleek, modern design built to operate beautifully on any device.
+*   **Interactive Analytics:** Chart.js integration providing real-time sentiment distribution and temporal emotion tracking.
+*   **Intelligent Theme Awareness:** Dynamic transitions between premium Light and Dark modes.
 
-**🔒 Enterprise-Grade Security**
+**🔒 Enterprise-Grade Application Design**
+*   **PDF Report Generation:** One-click automated PDF reports with color-coded analytics and branded aesthetics.
+*   **Strict Test Coverage:** Enforced Pytest CI logic paired with rigorous MyPy type formatting out of the box.
 
-- Secure File Upload - Path traversal protection and file validation
-- Magic Byte Verification - Advanced file type detection
-- Automatic Cleanup - Temporary files removed after processing
-- Input Validation - Comprehensive data sanitization
+---
 
+## 🧭 Architecture
+
+```mermaid
+graph TD
+    A[Audio File Upload] --> B(File Security Validation)
+    B --> C{Transcribe & Diarize}
+    C -->|openai-whisper| D(Raw Text)
+    C -->|Speaker Heuristics| E(Diarized Turns)
+    
+    D --> F[KeyBERT & Fallback NLP]
+    E --> G[VADER & HuggingFace Models]
+    E --> H[Google Gemini 2.0]
+    
+    F -->|Keyword Extraction| I((Unified Insights JSON))
+    G -->|Emotion Timeline & Sentiment| I
+    H -->|Summary & Coaching Advice| I
+    
+    I --> J[Chart.js Glassmorphism UI]
+    I --> K[FPDF Report Generator]
+    
+    classDef main fill:#30363d,stroke:#58a6ff,stroke-width:2px,color:#fff;
+    class A,J,K main;
+```
+
+---
+
+## 🏗️ Technical Stack
+
+| Category | Technologies Used | Description |
+| :--- | :--- | :--- |
+| **Backend Core** | `Python 3.12`, `Flask` | Primary scalable application server, REST routing. |
+| **Speech Processing** | `openai-whisper` | Asynchronous local-first transcription architecture. |
+| **NLP & Semantics** | `VADER`, `KeyBERT`, `Transformers` | Core NLP pipelines tracking emotion, valence, and keywords. |
+| **Generative AI** | `google-generativeai` | High-end context mapping and mentorship generation logic. |
+| **Frontend UI** | `Vanilla HTML/CSS/JS`, `Chart.js` | Zero-dependency core layout emphasizing fluid CSS3 animations. |
+| **Reporting Tools** | `FPDF2` | Layout-driven programmatic PDF exporter for analysis sharing. |
+| **CI / Quality** | `pytest`, `flake8`, `mypy` | End-to-end type hinting enforcement and behavioral verifications. |
+
+---
 
 ## 🚀 Quick Start
 
 ### Prerequisites
-
-- Python 3.12+
-- Google Gemini API key
-- 4GB+ RAM (for Whisper model)
-
+*   Python 3.12+ installed
+*   Google Gemini API Key
+*   Minimum 4GB RAM (Whisper Model caching capability)
 
 ### Installation
 
-```
+```bash
 # 1. Clone the repository
 git clone https://github.com/C0deRatoR/call-analyzer.git
 cd call-analyzer
 
-# 2. Create and activate virtual environment
-python3 -m venv venv
+# 2. Automatically setup virtual environment and dependencies
+make setup
 source venv/bin/activate
 
-# 3. Install dependencies
-pip install -r requirements.txt
+# 3. Export environment variables
+export API_KEY="your_gemini_api_key_here"
 
-# 4. Set up environment variables
-echo "API_KEY=your_gemini_api_key_here" > .env
-
-# 5. Start the application
-cd src
-python app.py
+# 4. Start the application
+make run
 ```
 
+Access the complete dashboard directly via: **`http://127.0.0.1:5000`**
 
-### 🌐 Access
+---
 
-Open your browser: **http://127.0.0.1:5000**
+## 🧪 Developer Commands
+Call analyzer utilizes a strict built-in Makefile to streamline development:
 
-## 🔧 How It Works
+*   `make setup`: Re-sync dependencies via `requirements.txt`.
+*   `make test`: Run the full mocked PyTest logic on the ML pipeline.
+*   `make lint`: Execute `flake8` compliance check and `mypy` strict layout analysis.
+*   `make run`: Run the local development server cleanly.
 
-1. **🎤 Audio Upload** - Drag and drop audio files (MP3, WAV, M4A, FLAC, OGG)
-2. **📝 AI Transcription** - OpenAI Whisper processes audio locally
-3. **🧠 Intelligent Analysis** - Dual sentiment analysis with VADER + Gemini
-4. **📊 Interactive Results** - Visual sentiment breakdown with export options
-
-## 🏗️ Technical Stack
-
-**Backend**
-
-- Flask 3.1.0 - Web application framework
-- openai-whisper - Audio transcription
-- google-generativeai - AI analysis and insights
-- vaderSentiment - Real-time sentiment scoring
-
-**Frontend**
-
-- HTML5 - Semantic structure
-- CSS3 - Modern styling with animations
-- JavaScript ES6+ - Interactive functionality
-- Font Awesome 6 - Professional icons
-
-
-## 📁 Project Structure
-
-```
-call-analyzer/
-├── src/
-│   ├── app.py                   # Flask web application
-│   ├── main.py                  # CLI interface
-│   ├── whisper_module.py        # Audio transcription
-│   ├── gemini_module.py         # AI analysis
-│   └── sentiment_analyzer.py    # Enhanced sentiment processing
-├── web/
-│   ├── index.html              # Main interface
-│   ├── styles/main.css         # Modern CSS
-│   └── scripts/app.js          # Interactive JavaScript
-├── samples/                     # Example audio files
-├── requirements.txt            # Dependencies
-└── README.md                   # This file
+For direct CLI execution skipping the frontend:
+```bash
+python src/main.py samples/demo.wav
 ```
 
+---
 
-## 🎯 Use Cases
+## 📈 Technical Roadmap
 
-**Educational Institutions**
+**Phase 1: Core Processing Pipeline** ✅
+- [x] Basic Audio transcription with Whisper
+- [x] Contextual analysis with Gemini
+- [x] Modern interactive UI framework deployed
 
-- Student counseling session analysis
-- Admission interview insights
-- Support service improvements
+**Phase 2: NLP Analytics Deep-Drive** ✅
+- [x] Keyword extraction via KeyBERT & TF-IDF
+- [x] Emotion tracking timeline using HuggingFace models
+- [x] Full PDF Report Engine execution
 
-**Business Applications**
-
-- Customer support call monitoring
-- Sales conversation analysis
-- Training program enhancement
-
-**Research \& Development**
-
-- Conversation pattern analysis
-- Sentiment research studies
-- AI model training data generation
-
-
-## 📊 Performance
-
-| Metric | Value |
-| :-- | :-- |
-| Transcription Accuracy | 95%+ |
-| Processing Speed | 0.3x real-time |
-| Memory Usage | ~2GB |
-| API Response Time | <2 seconds |
-| File Size Limit | 100MB |
-| Supported Formats | MP3, WAV, M4A, FLAC, OGG |
-
-## 🧪 CLI Usage
-
-```
-# Process audio file directly
-python src/main.py samples/conversation.wav
-```
-
-Output:
-
-```
-{
-  "transcript": "...",
-  "summary": "...",
-  "sentiment": {
-    "vader_scores": {...},
-    "ai_analysis": "..."
-  },
-  "suggestion": "..."
-}
-```
-
-
-## 🚀 Deployment
-
-**Development**
-
-```
-python src/app.py
-```
-
-**Production**
-
-```
-pip install gunicorn
-gunicorn -w 4 -b 0.0.0.0:8000 app:app
-```
-
-
-## 🔐 Security Features
-
-- Path traversal protection with secure filename generation
-- Magic byte validation for file type verification
-- Automatic temporary file cleanup
-- Comprehensive input validation and sanitization
-- Secure API key management with environment variables
-
-
-## 📈 Roadmap
-
-**Phase 1: Core Features** ✅
-
-- [x] Audio transcription with Whisper
-- [x] AI analysis with Gemini
-- [x] Modern interactive UI
-- [x] Enhanced sentiment analysis
-
-**Phase 2: Advanced Analytics** 🔄
-
-- [ ] Keyword extraction and topic modeling
-- [ ] Interactive charts and visualizations
-- [ ] Historical analysis and trends
-
-**Phase 3: Platform Features** 🔮
-
-- [ ] User authentication
-- [ ] API documentation
-- [ ] Docker containerization
+**Phase 3: Production Polish & Scalability** 🔄
+- [x] 100% Type-hint coverage and Linter implementation
+- [x] Pytest suite injection
+- [ ] User authentication / Enterprise roles
+- [ ] Docker containerization integration
 - [ ] Real-time WebSocket processing
 
+---
 
 ## 🤝 Contributing
+Open source thrives on community input. Check out our [Contributing Guidelines](CONTRIBUTING.md) to get involved. 
 
-1. Fork the repository
-2. Create feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Open Pull Request
+1. Fork the repo and create your branch (`git checkout -b feature/amazing-feature`)
+2. Commit your code (`git commit -m 'feat: add amazing feature'`)
+3. Pass tests (`make test && make lint`)
+4. Open a Pull Request!
 
 ## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- OpenAI Whisper - Speech recognition
-- Google Gemini - Language understanding
-- VADER Sentiment - Sentiment analysis
-- Flask Framework - Web development
+This project is securely licensed under the MIT License - see the [LICENSE](LICENSE) file for deep details.
 
 <div align="center">
-
-**Built with ❤️ for better communication analysis**
-
-⭐ Star this repo if you find it useful!
-
+<b>Built directly for actionable conversation insights</b> <br>
+⭐ Star this repo if you find it beneficial!
 </div>
