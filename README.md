@@ -1,6 +1,7 @@
 <div align="center">
 
 # 🎧 Call Analyzer
+
 **AI-Powered Audio Intelligence & Mentoring Guidance**
 
 [![Python 3.12](https://img.shields.io/badge/Python-3.12-blue.svg)](https://www.python.org/)
@@ -9,10 +10,7 @@
 [![Whisper Audio](https://img.shields.io/badge/Audio-OpenAI_Whisper-brightgreen.svg)](https://github.com/openai/whisper)
 [![License: MIT](https://img.shields.io/badge/License-MIT-purple.svg)](https://opensource.org/licenses/MIT)
 
-Transform your audio conversations into actionable insights with state-of-the-art AI transcription, multi-model sentiment analysis, and professional counselor analytics. 
-
-![Call Analyzer Interactive Demo](assets/demo.webp)
-
+Transform your audio conversations into actionable insights with state-of-the-art AI transcription, multi-model sentiment analysis, and professional counselor analytics.
 </div>
 
 <br/>
@@ -20,19 +18,22 @@ Transform your audio conversations into actionable insights with state-of-the-ar
 ## ✨ Key Features
 
 **🤖 Multi-Model AI Processing**
-*   **OpenAI Whisper Integration:** Precise, state-of-the-art audio handling and transcription natively on-machine.
-*   **Speaker Diarization:** Seamlessly separates individual speakers through pausing heuristics and context mapping.
-*   **Google Gemini Analysis:** Dynamic contextual understanding, automated transcript summarizations, and conversational advice.
-*   **BERT Topic Extraction & VADER Analysis:** Combined NLP strategies for robust sentiment breakdowns and high-relevance topic extraction.
+
+* **OpenAI Whisper Integration:** Precise, state-of-the-art audio handling and transcription natively on-machine.
+* **Speaker Diarization:** Seamlessly separates individual speakers through pausing heuristics and context mapping.
+* **Google Gemini Analysis:** Dynamic contextual understanding, automated transcript summarizations, and conversational advice.
+* **BERT Topic Extraction & VADER Analysis:** Combined NLP strategies for robust sentiment breakdowns and high-relevance topic extraction.
 
 **🎨 Modern Glassmorphism Interface**
-*   **Responsive Dashboard:** Sleek, modern design built to operate beautifully on any device.
-*   **Interactive Analytics:** Chart.js integration providing real-time sentiment distribution and temporal emotion tracking.
-*   **Intelligent Theme Awareness:** Dynamic transitions between premium Light and Dark modes.
+
+* **Responsive Dashboard:** Sleek, modern design built to operate beautifully on any device.
+* **Interactive Analytics:** Chart.js integration providing real-time sentiment distribution and temporal emotion tracking.
+* **Intelligent Theme Awareness:** Dynamic transitions between premium Light and Dark modes.
 
 **🔒 Enterprise-Grade Application Design**
-*   **PDF Report Generation:** One-click automated PDF reports with color-coded analytics and branded aesthetics.
-*   **Strict Test Coverage:** Enforced Pytest CI logic paired with rigorous MyPy type formatting out of the box.
+
+* **PDF Report Generation:** One-click automated PDF reports with color-coded analytics and branded aesthetics.
+* **Strict Test Coverage:** Enforced Pytest CI logic paired with rigorous MyPy type formatting out of the box.
 
 ---
 
@@ -79,9 +80,10 @@ graph TD
 ## 🚀 Quick Start
 
 ### Prerequisites
-*   Python 3.12+ installed
-*   Google Gemini API Key
-*   Minimum 4GB RAM (Whisper Model caching capability)
+
+* Python 3.12+ installed
+* Google Gemini API Key
+* Minimum 4GB RAM (Whisper Model caching capability)
 
 ### Installation
 
@@ -98,58 +100,34 @@ source venv/bin/activate
 export API_KEY="your_gemini_api_key_here"
 
 # 4. Start the application
-make run
+python src/app.py
 ```
 
 Access the complete dashboard directly via: **`http://127.0.0.1:5000`**
 
----
 
-## 🧪 Developer Commands
-Call analyzer utilizes a strict built-in Makefile to streamline development:
-
-*   `make setup`: Re-sync dependencies via `requirements.txt`.
-*   `make test`: Run the full mocked PyTest logic on the ML pipeline.
-*   `make lint`: Execute `flake8` compliance check and `mypy` strict layout analysis.
-*   `make run`: Run the local development server cleanly.
-
-For direct CLI execution skipping the frontend:
-```bash
-python src/main.py samples/demo.wav
-```
-
----
 
 ## 📈 Technical Roadmap
 
 **Phase 1: Core Processing Pipeline** ✅
-- [x] Basic Audio transcription with Whisper
-- [x] Contextual analysis with Gemini
-- [x] Modern interactive UI framework deployed
+* [x] Basic Audio transcription with Whisper
+* [x] Contextual analysis with Gemini
+* [x] Modern interactive UI framework deployed
 
 **Phase 2: NLP Analytics Deep-Drive** ✅
-- [x] Keyword extraction via KeyBERT & TF-IDF
-- [x] Emotion tracking timeline using HuggingFace models
-- [x] Full PDF Report Engine execution
+* [x] Keyword extraction via KeyBERT & TF-IDF
+* [x] Emotion tracking timeline using HuggingFace models
+* [x] Full PDF Report Engine execution
 
-**Phase 3: Production Polish & Scalability** 🔄
-- [x] 100% Type-hint coverage and Linter implementation
-- [x] Pytest suite injection
-- [ ] User authentication / Enterprise roles
-- [ ] Docker containerization integration
-- [ ] Real-time WebSocket processing
+**Phase 3: Production Polish** 🔄
+* [x] 100% Type-hint coverage and Linter implementation
+* [ ] User authentication / Enterprise roles
+* [ ] Real-time WebSocket processing
 
 ---
 
-## 🤝 Contributing
-Open source thrives on community input. Check out our [Contributing Guidelines](CONTRIBUTING.md) to get involved. 
-
-1. Fork the repo and create your branch (`git checkout -b feature/amazing-feature`)
-2. Commit your code (`git commit -m 'feat: add amazing feature'`)
-3. Pass tests (`make test && make lint`)
-4. Open a Pull Request!
-
 ## 📄 License
+
 This project is securely licensed under the MIT License - see the [LICENSE](LICENSE) file for deep details.
 
 <div align="center">
