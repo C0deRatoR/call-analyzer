@@ -2,6 +2,7 @@ import logging
 from typing import Dict, List, Any
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 import re
+import concurrent.futures
 
 logger = logging.getLogger(__name__)
 
@@ -9,6 +10,7 @@ class EnhancedSentimentAnalyzer:
     """Enhanced sentiment analysis combining VADER scores with text analysis."""
     
     def __init__(self):
+        """Initialize the EnhancedSentimentAnalyzer with VADER."""
         self.vader_analyzer = SentimentIntensityAnalyzer()
     
     def analyze_sentiment(self, text: str) -> Dict[str, Any]:
@@ -21,6 +23,17 @@ class EnhancedSentimentAnalyzer:
         Returns:
             Dictionary containing VADER scores and interpretation
         """
+        if not text or not str(text).strip():
+            return {
+                'error': "Empty text provided",
+                'vader_scores': {'positive': 0, 'negative': 0, 'neutral': 1, 'compound': 0},
+                'sentiment_label': 'neutral',
+                'confidence': 'low',
+                'emotional_indicators': [],
+                'text_stats': {'word_count': 0, 'char_count': 0},
+                'summary': "No text to analyze."
+            }
+            
         try:
             # Get VADER sentiment scores
             vader_scores = self.vader_analyzer.polarity_scores(text)
@@ -34,6 +47,13 @@ class EnhancedSentimentAnalyzer:
             # Calculate confidence level
             confidence = self._calculate_confidence(vader_scores)
             
+            # Calculate basic text statistics
+            words = text.split()
+            text_stats = {
+                'word_count': len(words),
+                'char_count': len(text)
+            }
+            
             return {
                 'vader_scores': {
                     'positive': round(vader_scores['pos'], 3),
@@ -44,6 +64,7 @@ class EnhancedSentimentAnalyzer:
                 'sentiment_label': sentiment_label,
                 'confidence': confidence,
                 'emotional_indicators': emotional_indicators,
+                'text_stats': text_stats,
                 'summary': self._generate_sentiment_summary(vader_scores, sentiment_label, emotional_indicators)
             }
             
@@ -53,8 +74,28 @@ class EnhancedSentimentAnalyzer:
                 'error': f"Sentiment analysis failed: {str(e)}",
                 'vader_scores': {'positive': 0, 'negative': 0, 'neutral': 1, 'compound': 0},
                 'sentiment_label': 'neutral',
-                'confidence': 'low'
+                'confidence': 'low',
+                'emotional_indicators': [],
+                'text_stats': {'word_count': 0, 'char_count': 0},
+                'summary': "Analysis failed."
             }
+
+    def analyze_batch(self, texts: List[str], max_workers: int = 4) -> List[Dict[str, Any]]:
+        """
+        Perform parallel sentiment analysis on a list of texts.
+        
+        Args:
+            texts: A list of text strings to analyze
+            max_workers: Maximum number of worker threads for parallel processing
+            
+        Returns:
+            List of dictionaries containing sentiment analysis results for each text
+        """
+        results = []
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # Map guarantees the results are returned in the same order as the input
+            results = list(executor.map(self.analyze_sentiment, texts))
+        return results
     
     def _interpret_compound_score(self, compound_score: float) -> str:
         """Interpret VADER compound score into sentiment categories."""
@@ -70,47 +111,28 @@ class EnhancedSentimentAnalyzer:
             return 'very_negative'
     
     def _extract_emotional_indicators(self, text: str) -> List[str]:
-        """Extract emotional indicators from text."""
-        indicators = []
+        """Extract specific emotional indicators from text using pattern matching."""
+        indicators = set()
         
-        # Positive indicators
-        positive_patterns = [
-            r'\b(great|excellent|wonderful|amazing|fantastic|perfect|love|happy|excited|pleased)\b',
-            r'\b(thank you|thanks|appreciate|grateful)\b',
-            r'\b(yes|absolutely|definitely|certainly|sure)\b'
-        ]
-        
-        # Negative indicators  
-        negative_patterns = [
-            r'\b(terrible|awful|horrible|frustrated|angry|upset|disappointed|worried|concerned)\b',
-            r'\b(problem|issue|trouble|difficult|hard|challenging)\b',
-            r'\b(no|never|nothing|nobody|nowhere)\b'
-        ]
-        
-        # Question/uncertainty indicators
-        question_patterns = [
-            r'\b(confused|uncertain|unsure|maybe|perhaps|possibly)\b',
-            r'\?'
-        ]
+        emotion_patterns = {
+            'joy_or_praise': [r'\b(great|excellent|wonderful|amazing|fantastic|perfect|love|happy|excited|pleased)\b'],
+            'gratitude': [r'\b(thank you|thanks|appreciate|grateful)\b'],
+            'agreement': [r'\b(yes|absolutely|definitely|certainly|sure|agreed)\b'],
+            'anger_or_frustration': [r'\b(terrible|awful|horrible|frustrated|angry|mad|furious|upset)\b'],
+            'disappointment_or_worry': [r'\b(disappointed|worried|concerned|anxious|sad|wrong)\b'],
+            'difficulty': [r'\b(problem|issue|trouble|difficult|hard|challenging|broken)\b'],
+            'confusion_or_uncertainty': [r'\b(confused|uncertain|unsure|maybe|perhaps|possibly|how)\b', r'\?']
+        }
         
         text_lower = text.lower()
         
-        for pattern in positive_patterns:
-            if re.search(pattern, text_lower):
-                indicators.append('positive_language')
-                break
-                
-        for pattern in negative_patterns:
-            if re.search(pattern, text_lower):
-                indicators.append('negative_language')
-                break
-                
-        for pattern in question_patterns:
-            if re.search(pattern, text_lower):
-                indicators.append('uncertainty')
-                break
+        for emotion, patterns in emotion_patterns.items():
+            for pattern in patterns:
+                if re.search(pattern, text_lower):
+                    indicators.add(emotion)
+                    break
         
-        return indicators
+        return sorted(list(indicators))
     
     def _calculate_confidence(self, vader_scores: Dict[str, float]) -> str:
         """Calculate confidence level based on score distribution."""
