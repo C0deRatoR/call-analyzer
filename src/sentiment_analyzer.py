@@ -10,8 +10,23 @@ class EnhancedSentimentAnalyzer:
     """Enhanced sentiment analysis combining VADER scores with text analysis."""
     
     def __init__(self):
-        """Initialize the EnhancedSentimentAnalyzer with VADER."""
+        """Initialize the EnhancedSentimentAnalyzer with VADER and pre-compiled regex patterns."""
         self.vader_analyzer = SentimentIntensityAnalyzer()
+        
+        # Pre-compile emotional indicator patterns for better performance
+        raw_patterns = {
+            'joy_or_praise': [r'\b(great|excellent|wonderful|amazing|fantastic|perfect|love|happy|excited|pleased)\b'],
+            'gratitude': [r'\b(thank you|thanks|appreciate|grateful)\b'],
+            'agreement': [r'\b(yes|absolutely|definitely|certainly|sure|agreed)\b'],
+            'anger_or_frustration': [r'\b(terrible|awful|horrible|frustrated|angry|mad|furious|upset)\b'],
+            'disappointment_or_worry': [r'\b(disappointed|worried|concerned|anxious|sad|wrong)\b'],
+            'difficulty': [r'\b(problem|issue|trouble|difficult|hard|challenging|broken)\b'],
+            'confusion_or_uncertainty': [r'\b(confused|uncertain|unsure|maybe|perhaps|possibly|how)\b', r'\?']
+        }
+        self.compiled_patterns = {
+            emotion: [re.compile(pattern) for pattern in patterns]
+            for emotion, patterns in raw_patterns.items()
+        }
     
     def analyze_sentiment(self, text: str) -> Dict[str, Any]:
         """
@@ -114,21 +129,11 @@ class EnhancedSentimentAnalyzer:
         """Extract specific emotional indicators from text using pattern matching."""
         indicators = set()
         
-        emotion_patterns = {
-            'joy_or_praise': [r'\b(great|excellent|wonderful|amazing|fantastic|perfect|love|happy|excited|pleased)\b'],
-            'gratitude': [r'\b(thank you|thanks|appreciate|grateful)\b'],
-            'agreement': [r'\b(yes|absolutely|definitely|certainly|sure|agreed)\b'],
-            'anger_or_frustration': [r'\b(terrible|awful|horrible|frustrated|angry|mad|furious|upset)\b'],
-            'disappointment_or_worry': [r'\b(disappointed|worried|concerned|anxious|sad|wrong)\b'],
-            'difficulty': [r'\b(problem|issue|trouble|difficult|hard|challenging|broken)\b'],
-            'confusion_or_uncertainty': [r'\b(confused|uncertain|unsure|maybe|perhaps|possibly|how)\b', r'\?']
-        }
-        
         text_lower = text.lower()
         
-        for emotion, patterns in emotion_patterns.items():
-            for pattern in patterns:
-                if re.search(pattern, text_lower):
+        for emotion, compiled_patterns in self.compiled_patterns.items():
+            for pattern in compiled_patterns:
+                if pattern.search(text_lower):
                     indicators.add(emotion)
                     break
         
