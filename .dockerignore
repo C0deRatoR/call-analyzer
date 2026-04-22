@@ -1,0 +1,45 @@
+# Version control
+.git
+.gitignore
+
+# Virtual environment
+venv/
+.venv/
+
+# Python caches
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.mypy_cache/
+.pytest_cache/
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment
+.env
+
+# Samples & uploads
+samples/
+uploads/
+
+# Audio files (test data)
+*.wav
+*.mp3
+*.m4a
+*.flac
+
+# Documentation (not needed in image)
+*.md
+LICENSE
+task.md
+Updates.md
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore

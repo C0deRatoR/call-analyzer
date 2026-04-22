@@ -1,4 +1,6 @@
 __pycache__/
+.mypy_cache/
+.pytest_cache/
 *.pyc
 *.pyo
 *.pyd
@@ -12,5 +14,10 @@ uploads/
 *.m4a
 *.flac
 updates.md
+Updates.md
 walkthrough Phase 4.md
 task.md
+explaination.md
+design.md
+generate_audio.py
+generate_complex_sample.py

@@ -9,6 +9,8 @@
 [![Built with Gemini](https://img.shields.io/badge/Model-Google_Gemini-yellow.svg)](https://deepmind.google/technologies/gemini/)
 [![Whisper Audio](https://img.shields.io/badge/Audio-OpenAI_Whisper-brightgreen.svg)](https://github.com/openai/whisper)
 [![License: MIT](https://img.shields.io/badge/License-MIT-purple.svg)](https://opensource.org/licenses/MIT)
+[![Docker](https://img.shields.io/docker/pulls/c0derator/call-analyzer.svg?logo=docker)](https://hub.docker.com/r/c0derator/call-analyzer)
+[![Docker Image](https://img.shields.io/docker/image-size/c0derator/call-analyzer/latest?logo=docker&label=image%20size)](https://hub.docker.com/r/c0derator/call-analyzer)
 
 Transform your audio conversations into actionable insights with state-of-the-art AI transcription, multi-model sentiment analysis, and professional counselor analytics.
 </div>
@@ -105,6 +107,40 @@ python src/app.py
 
 Access the complete dashboard directly via: **`http://127.0.0.1:5000`**
 
+### 🐳 Docker (Recommended)
+
+Pull and run in a single command:
+
+```bash
+docker pull c0derator/call-analyzer
+```
+
+```bash
+# Run with your Gemini API key
+docker run -d -p 5000:5000 -e API_KEY="your_gemini_api_key" c0derator/call-analyzer
+```
+
+Or use **Docker Compose** for the full setup:
+
+```bash
+# 1. Clone and configure
+git clone https://github.com/C0deRatoR/call-analyzer.git
+cd call-analyzer
+cp .env.example .env          # Add your API_KEY in .env
+
+# 2. Build & launch
+docker compose up -d
+```
+
+That's it — open **`http://localhost:5000`** and start analyzing calls.
+
+| Command | Description |
+| :--- | :--- |
+| `docker compose up -d` | Start in background |
+| `docker compose down` | Stop and remove containers |
+| `docker compose logs -f` | Stream live logs |
+| `docker compose up -d --build` | Rebuild after code changes |
+
 
 
 ## 📈 Technical Roadmap
@@ -121,6 +157,7 @@ Access the complete dashboard directly via: **`http://127.0.0.1:5000`**
 
 **Phase 3: Production Polish** 🔄
 * [x] 100% Type-hint coverage and Linter implementation
+* [x] Dockerized deployment (`docker pull c0derator/call-analyzer`)
 * [ ] User authentication / Enterprise roles
 * [ ] Real-time WebSocket processing
 
