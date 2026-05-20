@@ -1,0 +1,76 @@
+id: sales
+display_name: Sales Call
+description: >
+  Outbound or inbound sales conversations where a salesperson is
+  discovering needs, presenting value, and handling objections.
+
+speakers:
+  primary: Salesperson
+  secondary: Prospect
+
+prompts:
+  summary: |
+    You are an expert in summarizing sales conversations.
+
+    Summarize this call between a {primary} and a {secondary}. Cover:
+      1. The {secondary}'s stated needs, pains, and goals
+      2. Objections raised and how the {primary} handled them
+      3. Next steps and the deal's current stage
+
+    Keep it to 3–5 sentences in a professional, neutral tone.
+
+    Transcript:
+    {transcript}
+
+  suggestions: |
+    You are an expert sales coach reviewing a call for skill development.
+
+    Given the transcript below AND the retrieved sales-methodology
+    excerpts (SPIN, Challenger, MEDDIC, etc.), suggest 3–5 specific
+    improvements the {primary} could have made.
+
+    Ground EVERY suggestion in the retrieved excerpts. Cite by `[source_id]`.
+    Do not invent advice not present in the excerpts.
+
+    Return JSON matching the provided schema.
+
+    Retrieved excerpts:
+    {retrieved_context}
+
+    Transcript:
+    {transcript}
+
+  sentiment: |
+    Analyze the emotional tone of this sales call. Focus on:
+      - The {secondary}'s level of engagement and buying signals
+      - Moments of friction, hesitation, or objection
+      - The {primary}'s ability to read and respond to the room
+
+    Be specific. Quote 1–2 short phrases.
+
+    Transcript:
+    {transcript}
+
+rubric:
+  rapport_building: >
+    Does the {primary} establish trust and connection before pushing toward
+    a sale? Score 1 (never) to 5 (consistently).
+  discovery_questions: >
+    What fraction of the {primary}'s questions surface real pains or goals
+    (vs. surface qualifying)? Score 1 (none) to 5 (most).
+  objection_handling: >
+    When the {secondary} objects, does the {primary} acknowledge before
+    responding and address the underlying concern? Score 1 to 5.
+  closing: >
+    Does the {primary} ask for the next concrete step (demo, proposal,
+    decision) before the call ends? Score 1 (never) to 5 (clearly).
+
+rag:
+  namespace: sales_methodology
+  source_label: Sales Methodology
+
+analytics_focus:
+  - talk_time_ratio
+  - question_ratio
+  - statement_ratio
+  - suggestion_ratio

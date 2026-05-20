@@ -1,0 +1,76 @@
+id: customer_support
+display_name: Customer Support Call
+description: >
+  Inbound customer support conversations where an agent is diagnosing a
+  problem and guiding the customer to a resolution.
+
+speakers:
+  primary: Agent
+  secondary: Customer
+
+prompts:
+  summary: |
+    You are an expert in summarizing customer support interactions.
+
+    Summarize this call between an {primary} and a {secondary}. Cover:
+      1. The {secondary}'s problem and any context
+      2. Steps the {primary} took to diagnose and resolve
+      3. Final resolution status and any follow-up needed
+
+    Keep it to 3–5 sentences in a professional, neutral tone.
+
+    Transcript:
+    {transcript}
+
+  suggestions: |
+    You are an expert customer-experience coach reviewing a support call.
+
+    Given the transcript below AND the retrieved best-practice excerpts
+    (de-escalation, empathy frameworks, troubleshooting flows), suggest
+    3–5 specific improvements the {primary} could have made.
+
+    Ground EVERY suggestion in the retrieved excerpts. Cite by `[source_id]`.
+    Do not invent advice not present in the excerpts.
+
+    Return JSON matching the provided schema.
+
+    Retrieved excerpts:
+    {retrieved_context}
+
+    Transcript:
+    {transcript}
+
+  sentiment: |
+    Analyze the emotional arc of this support call. Focus on:
+      - The {secondary}'s frustration level and how it evolved
+      - The {primary}'s ability to de-escalate and reassure
+      - Whether the call ended with the {secondary} feeling heard
+
+    Be specific. Quote 1–2 short phrases.
+
+    Transcript:
+    {transcript}
+
+rubric:
+  empathy: >
+    Does the {primary} acknowledge the {secondary}'s frustration before
+    troubleshooting? Score 1 (never) to 5 (consistently).
+  problem_diagnosis: >
+    Does the {primary} ask clarifying questions to understand the issue
+    before proposing a fix? Score 1 to 5.
+  solution_clarity: >
+    Are the {primary}'s instructions specific and easy to follow?
+    Score 1 (vague) to 5 (precise).
+  resolution: >
+    Is the {secondary}'s issue resolved (or a clear next step set) by call
+    end? Score 1 (no) to 5 (fully resolved + confirmed).
+
+rag:
+  namespace: customer_support_best_practices
+  source_label: Customer Support Playbook
+
+analytics_focus:
+  - talk_time_ratio
+  - question_ratio
+  - acknowledgment_ratio
+  - suggestion_ratio

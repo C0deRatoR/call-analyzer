@@ -1,0 +1,76 @@
+id: counseling
+display_name: Counseling Session
+description: >
+  Therapy / counseling / coaching conversations where a trained counselor
+  supports a client (often a student) through a personal concern.
+
+speakers:
+  primary: Counselor
+  secondary: Student
+
+prompts:
+  summary: |
+    You are an expert in summarizing counseling conversations.
+
+    Summarize this call between a {primary} and a {secondary}. Cover:
+      1. The main concerns the {secondary} raised
+      2. Key insights or reframings the {primary} offered
+      3. Concrete next steps or follow-ups agreed on
+
+    Keep it to 3–5 sentences in a professional, neutral tone.
+
+    Transcript:
+    {transcript}
+
+  suggestions: |
+    You are an expert counseling coach reviewing a session for quality.
+
+    Given the transcript below AND the retrieved best-practice excerpts,
+    suggest 3–5 specific improvements the {primary} could have made.
+
+    Ground EVERY suggestion in the retrieved excerpts. Cite the excerpt
+    you used by its `[source_id]`. Do not invent advice not present in
+    the excerpts.
+
+    Return JSON matching the provided schema.
+
+    Retrieved excerpts:
+    {retrieved_context}
+
+    Transcript:
+    {transcript}
+
+  sentiment: |
+    Analyze the emotional arc of this counseling session. Focus on:
+      - The {secondary}'s emotional state and any shifts during the call
+      - The {primary}'s tone and effectiveness in matching it
+      - Specific moments where emotion peaked or shifted
+
+    Be specific. Quote 1–2 short phrases from the transcript.
+
+    Transcript:
+    {transcript}
+
+rubric:
+  empathy: >
+    Does the {primary} reflect the {secondary}'s feelings before offering
+    solutions? Score 1 (never) to 5 (consistently).
+  open_questions: >
+    What fraction of the {primary}'s questions are open-ended (not yes/no)?
+    Score 1 (mostly closed) to 5 (mostly open).
+  active_listening: >
+    Does the {primary} paraphrase or summarize what the {secondary} said
+    before responding? Score 1 (never) to 5 (consistently).
+  actionability: >
+    Are concrete, doable next steps agreed on before the call ends?
+    Score 1 (none) to 5 (clear and committed).
+
+rag:
+  namespace: counseling_best_practices
+  source_label: Counseling Research
+
+analytics_focus:
+  - talk_time_ratio
+  - question_ratio
+  - acknowledgment_ratio
+  - suggestion_ratio

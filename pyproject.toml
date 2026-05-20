@@ -1,0 +1,115 @@
+[project]
+name = "conviq"
+version = "0.1.0"
+description = "Conversation intelligence platform: configurable-domain analysis with fine-tuned dialogue-act classification, RAG-grounded coaching, async pipeline, and full LLM observability."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.11,<3.13"
+authors = [{ name = "ConvIQ" }]
+
+dependencies = [
+    # ---- Web framework ----
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "gunicorn>=22.0",
+    "python-multipart>=0.0.9",
+    "sse-starlette>=2.1",
+
+    # ---- Validation / config ----
+    "pydantic>=2.7",
+    "pydantic-settings>=2.3",
+    "python-dotenv>=1.0",
+    "pyyaml>=6.0",
+
+    # ---- Database ----
+    "sqlalchemy[asyncio]>=2.0",
+    "asyncpg>=0.29",          # async driver for FastAPI
+    "psycopg2-binary>=2.9",   # sync driver for Celery worker
+    "alembic>=1.13",
+    "pgvector>=0.3",
+
+    # ---- Queue / pub-sub ----
+    "celery[redis]>=5.4",
+    "redis>=5.0",
+
+    # ---- LLM + observability ----
+    "google-generativeai>=0.8",
+    "langfuse>=2.50",
+
+    # ---- Audio ML ----
+    "openai-whisper>=20231117",
+    "torch>=2.2",
+    "transformers>=4.42",
+    "sentence-transformers>=3.0",
+    "pyannote.audio>=3.3",
+
+    # ---- NLP ----
+    "keybert>=0.8",
+    "vaderSentiment>=3.3",
+
+    # ---- Vector store ----
+    "chromadb>=0.5",
+
+    # ---- Reporting ----
+    "fpdf2>=2.7",
+
+    # ---- HTTP / async utilities ----
+    "httpx>=0.27",
+    "aiofiles>=23.2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.5",
+    "mypy>=1.10",
+    "pytest>=8.2",
+    "pytest-asyncio>=0.23",
+    "pytest-cov>=5.0",
+    "types-pyyaml",
+]
+training = [
+    "datasets>=2.20",
+    "evaluate>=0.4",
+    "accelerate>=0.32",
+    "scikit-learn>=1.5",
+    "jupyter>=1.0",
+    "ipykernel>=6.29",
+    "seaborn>=0.13",
+    "matplotlib>=3.9",
+]
+eval = [
+    "jiwer>=3.0",
+    "pyannote.metrics>=3.2",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["apps", "core", "pipeline"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "B", "UP", "RUF"]
+ignore = ["E501"]
+
+[tool.ruff.format]
+docstring-code-format = true
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+warn_unused_ignores = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.3",
+]
