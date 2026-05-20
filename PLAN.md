@@ -269,19 +269,20 @@ call-analyzer/
 
 Estimated total: **10-14 days of focused work** for a student doing this part-time alongside classes.
 
-### Phase 0 — Foundations (1-2 days)
-- [ ] Repo restructure to the layout above
-- [ ] Switch from `requirements.txt` to `pyproject.toml` (uv or poetry)
-- [ ] FastAPI skeleton with `/health`, `/calls` endpoints (Pydantic stubs only)
-- [ ] Docker Compose with Postgres + Redis + Chroma
-- [ ] Alembic migrations for the schema above
-- [ ] Move existing pipeline modules into `pipeline/` unchanged for now
+### Phase 0 — Foundations ✅ COMPLETE
+- [x] Repo restructure to the layout above
+- [x] Switch from `requirements.txt` to `pyproject.toml` (uv)
+- [x] FastAPI skeleton with `/health`, `/calls`, `/domains` endpoints (Pydantic models)
+- [x] Docker Compose with Postgres + Redis + Chroma
+- [x] Alembic migrations for the schema above (`calls`, `turns`, `analytics`, `llm_traces`)
+- [x] Move existing pipeline modules into `pipeline/` unchanged
 
-### Phase 1 — Domain System + Structured Outputs (1-2 days)
-- [ ] `domains/` YAML loader with Pydantic validation
-- [ ] Three domain configs: counseling, sales, support
-- [ ] All Gemini calls converted to structured outputs (JSON mode + Pydantic schemas)
-- [ ] `domain` query param on `/calls` selects which config to use
+### Phase 1 — Domain System + Structured Outputs ✅ COMPLETE
+- [x] `domains/` YAML loader with Pydantic validation (`core/domains/loader.py`)
+- [x] Three domain configs: `counseling.yaml`, `sales.yaml`, `customer_support.yaml`
+- [x] Gemini client rewritten with structured outputs (Pydantic schemas, JSON mode)
+- [x] Domain prompt renderer (`pipeline/prompts.py`)
+- [x] `domain` form field on `POST /calls` selects which config to use
 
 ### Phase 2 — Real Diarization + Async Pipeline (2 days)
 - [ ] pyannote.audio integration (requires HF token + accept license)
@@ -344,19 +345,10 @@ Estimated total: **10-14 days of focused work** for a student doing this part-ti
 
 ---
 
-## Open Questions to Resolve Before Phase 0
+## Resolved Decisions
 
-1. **HuggingFace account?** You'll need one for both pyannote (model access requires accepting the license) and for publishing the trained model. Free, takes 2 minutes.
-2. **Project rename?** Current name "call-analyzer" is generic. Suggestion: **ConvIQ** (Conversation IQ) or **Echo** or **Resonate**. A distinctive name helps recruiters remember the project. Open to your preference.
-3. **License?** Currently MIT — fine to keep, but note that DailyDialog is CC BY-NC-SA, which means the *trained model* should be released under a non-commercial license. The application code can stay MIT.
-4. **Free GPU fallback?** RTX 4060 will handle DistilBERT comfortably, but if you ever want to train something bigger, Kaggle Notebooks give 30 GPU-hours/week free (better than Colab free) on T4/P100.
-
----
-
-## What I Need From You to Start Phase 0
-
-- Confirmation on the project name (ConvIQ / something else / keep "call-analyzer")
-- HuggingFace account (just the username) so I can put placeholders in configs
-- Whether you'd prefer `uv` or `poetry` for dependency management (I'd recommend **uv** — faster, modern, what most new AI infra is using)
-
-Once those three are answered, I'll start Phase 0 immediately.
+- **Project name:** ConvIQ (repo stays `call-analyzer` for now; display name is ConvIQ)
+- **Dependency manager:** `uv` with `pyproject.toml`
+- **License:** MIT for application code; trained model will use CC BY-NC-SA (matches DailyDialog dataset)
+- **GPU:** RTX 4060 Laptop (8 GB VRAM) for local DistilBERT training; Kaggle T4 as fallback
+- **HF account:** required for pyannote license acceptance and model publishing

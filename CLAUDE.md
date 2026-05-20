@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-> **Project status:** Mid-rebuild from a Flask prototype into a production AI/ML system called **ConvIQ**. The phased plan is in [`PLAN.md`](PLAN.md). As of Phase 0, the FastAPI / Celery / Postgres / Redis / Chroma scaffold is in place but the pipeline itself is a stub. Phases 1–7 will wire in real diarization, the fine-tuned classifier, RAG, evals, and observability.
+> **Project status:** Mid-rebuild from a Flask prototype into a production AI/ML system called **ConvIQ**. The phased plan is in [`PLAN.md`](PLAN.md). Phases 0 and 1 are complete: the FastAPI / Celery / Postgres / Redis / Chroma scaffold is in place, the configurable domain system is live (YAML loader + three domain configs + prompt renderer), and Gemini structured outputs are wired. The Celery pipeline worker is still a stub — Phase 2 will replace it with real diarization and ML stages.
 
 ## Commands
 
@@ -54,14 +54,15 @@ core/            Shared library imported by both apps
 ├── db/          SQLAlchemy models + async session factory
 └── domains/     YAML loader + Pydantic schemas
 
-pipeline/        ML pipeline modules (legacy code, being wired into the new pipeline)
-├── transcription.py    (was whisper_module.py)
-├── diarization.py      (pause-heuristic; gets replaced by pyannote in Phase 2)
-├── emotion.py          (was emotion_detector.py)
-├── sentiment.py        (was sentiment_analyzer.py)
-├── keywords.py         (was topic_extractor.py)
-├── llm.py              (was gemini_module.py)
-└── report.py           (was report_generator.py)
+pipeline/        ML pipeline modules (migrated from legacy; being wired into the Celery worker)
+├── transcription.py    Whisper wrapper
+├── diarization.py      pause-heuristic (replaced by pyannote in Phase 2)
+├── emotion.py          HF emotion classifier
+├── sentiment.py        VADER sentiment + per-speaker analytics
+├── keywords.py         KeyBERT keyword extraction
+├── llm.py              Gemini structured-output client (updated Phase 1)
+├── prompts.py          domain prompt renderer (new Phase 1)
+└── report.py           PDF report generator
 
 domains/         YAML configs — one file per use case (counseling, sales, customer_support)
 knowledge_bases/ Source docs for per-domain RAG (filled in Phase 4)
@@ -100,7 +101,7 @@ GET /calls/{id}     → read full Call + turns + analytics from Postgres
 
 ### Key design details
 
-- **Pipeline stub:** `apps/worker/tasks/pipeline.py` walks fake stage names with `time.sleep` and writes a placeholder transcript. End-to-end flow (upload → SSE → status query) works; real ML doesn't. Phase 2 fills it in.
+- **Pipeline stub:** `apps/worker/tasks/pipeline.py` still walks fake stage names with `time.sleep` and writes a placeholder transcript. End-to-end flow (upload → SSE → status query) works; real ML doesn't run yet. Phase 2 replaces the stub with real Whisper + pyannote + the full stage chain.
 - **Model caching:** Whisper / HuggingFace pipeline / KeyBERT models are module-level globals in `pipeline/*.py`. First request is slow.
 - **Embedding dim:** pgvector column `Turn.embedding` is hard-coded to 384 (matches `sentence-transformers/all-MiniLM-L6-v2`). Change `Settings.embedding_dim` + run a migration if switching models.
 - **Async + Celery:** Celery tasks are sync; DB session is async. Tasks use `asyncio.run(...)` to bridge. Acceptable because pipeline stages are I/O / inference bound.
@@ -111,7 +112,7 @@ GET /calls/{id}     → read full Call + turns + analytics from Postgres
 
 - API entry: `apps/api/main.py`
 - Celery entry: `apps/worker/celery_app.py`
-- Pipeline stub: `apps/worker/tasks/pipeline.py`
+- Pipeline stub (Phase 2 target): `apps/worker/tasks/pipeline.py`
 - Settings: `core/config.py`
 - DB models: `core/db/models.py`
 - Domain loader: `core/domains/loader.py`
