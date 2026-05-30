@@ -8,10 +8,10 @@ Each public method:
 
 NOTE: `retrieved_context` is passed as "" until Phase 4 (RAG) wires in real
 retrieval. Suggestions will be produced but are not grounded in source excerpts
-until then — this is expected and documented per PLAN.md.
+until then; see docs/PROJECT_GUIDE.md for the roadmap.
 
-Langfuse @observe wrapping is reserved for Phase 6 — add one decorator per
-method when that phase lands. The class boundaries are designed for it.
+Observability wrapping is reserved for Phase 6. The class boundaries are
+designed for it.
 """
 
 import json

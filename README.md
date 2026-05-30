@@ -18,7 +18,7 @@
 > Upload any audio conversation, pick a domain (counseling, sales, customer support, or your own), and get a complete analysis: real speaker diarization, turn-level emotion + dialogue-act labels from a custom-trained classifier, per-speaker analytics, and RAG-grounded coaching suggestions with citations — all surfaced live over a streaming async pipeline.
 
 > [!IMPORTANT]
-> **Status:** Active rebuild from a Flask prototype into a production-shaped AI/ML system. See [`docs/PLAN.md`](docs/PLAN.md) for the phased roadmap. Phases 0 and 1 are complete (scaffold, domain system, structured Gemini outputs). Phase 2 (real diarization + async pipeline) is next.
+> **Status:** Active rebuild from a Flask prototype into a production-shaped AI/ML system. See [`docs/PROJECT_GUIDE.md`](docs/PROJECT_GUIDE.md) for the architecture and roadmap. Phases 0 and 1 are complete (scaffold, domain system, structured outputs). Phase 2 (real diarization + async pipeline) is next.
 
 ---
 
@@ -166,7 +166,7 @@ celery -A apps.worker.celery_app:celery_app worker --loglevel=info
 
 ## Roadmap
 
-See [`docs/PLAN.md`](docs/PLAN.md) for the full phased plan. Quick view:
+See [`docs/PROJECT_GUIDE.md`](docs/PROJECT_GUIDE.md) for the full guide. Quick view:
 
 - [x] **Phase 0** — Foundations (FastAPI/Celery/Postgres/Redis scaffold, repo restructure, Alembic migrations)
 - [x] **Phase 1** — Domain system (YAML loader + 3 configs) + structured Gemini outputs + prompt renderer
