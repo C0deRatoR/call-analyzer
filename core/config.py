@@ -33,9 +33,7 @@ class Settings(BaseSettings):
     chroma_persist_dir: Path = PROJECT_ROOT / ".chroma"
 
     # ---- Database ----
-    database_url: str = (
-        "postgresql+asyncpg://conviq:conviq@localhost:5432/conviq"
-    )
+    database_url: str = "postgresql+asyncpg://conviq:conviq@localhost:5432/conviq"
 
     # ---- Redis (Celery broker + pub/sub for SSE) ----
     redis_url: str = "redis://localhost:6379/0"
@@ -68,7 +66,12 @@ class Settings(BaseSettings):
     # ---- Upload limits ----
     max_upload_mb: int = 100
     allowed_audio_extensions: tuple[str, ...] = (
-        "wav", "mp3", "m4a", "flac", "ogg", "aac",
+        "wav",
+        "mp3",
+        "m4a",
+        "flac",
+        "ogg",
+        "aac",
     )
 
 

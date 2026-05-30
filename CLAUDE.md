@@ -47,7 +47,7 @@ apps/
 │   └── schemas.py
 └── worker/      Celery worker
     ├── celery_app.py
-    └── tasks/pipeline.py    (stub in Phase 0; real pipeline lands Phase 2)
+    └── tasks/pipeline.py    (stage-shaped stub; real stage bodies land Phase 2)
 
 core/            Shared library imported by both apps
 ├── config.py    pydantic-settings (env vars, paths)
@@ -79,7 +79,7 @@ web/             Frontend (untouched in Phase 0; new one comes from claude desig
 **Two processes, one codebase:**
 
 - `apps/api` (FastAPI) accepts uploads, persists `Call` rows to Postgres, enqueues a Celery job, and exposes an SSE stream that relays progress events.
-- `apps/worker` (Celery) consumes jobs, runs the per-stage pipeline, publishes progress to a Redis pub/sub channel `pipeline:{call_id}`, and writes results back to Postgres.
+- `apps/worker` (Celery) consumes jobs, runs the stage-shaped pipeline, publishes progress to a Redis pub/sub channel `pipeline:{call_id}`, and writes results back to Postgres.
 
 Both processes import `apps.worker.tasks.pipeline.run_pipeline` so the task name is registered everywhere.
 
@@ -101,10 +101,10 @@ GET /calls/{id}     → read full Call + turns + analytics from Postgres
 
 ### Key design details
 
-- **Pipeline stub:** `apps/worker/tasks/pipeline.py` still walks fake stage names with `time.sleep` and writes a placeholder transcript. End-to-end flow (upload → SSE → status query) works; real ML doesn't run yet. Phase 2 replaces the stub with real Whisper + pyannote + the full stage chain.
+- **Pipeline stub:** `apps/worker/tasks/pipeline.py` walks deterministic stage names with `time.sleep`, publishes Redis progress events, and writes placeholder output. End-to-end flow (upload → Redis → SSE → status query) works; real ML doesn't run yet. Phase 2 replaces the stub stage bodies with real Whisper + pyannote + the full stage chain.
 - **Model caching:** Whisper / HuggingFace pipeline / KeyBERT models are module-level globals in `pipeline/*.py`. First request is slow.
 - **Embedding dim:** pgvector column `Turn.embedding` is hard-coded to 384 (matches `sentence-transformers/all-MiniLM-L6-v2`). Change `Settings.embedding_dim` + run a migration if switching models.
-- **Async + Celery:** Celery tasks are sync; DB session is async. Tasks use `asyncio.run(...)` to bridge. Acceptable because pipeline stages are I/O / inference bound.
+- **API + Celery DB sessions:** FastAPI uses the async SQLAlchemy session. Celery tasks use `SyncSessionLocal` with psycopg2 so worker tasks do not reuse async connection pools across event loops.
 - **Migrations:** the API container's entrypoint (`infra/entrypoint-api.sh`) runs `alembic upgrade head` before launching gunicorn, so schema is always current.
 - **Why no global counseling/student bias:** the legacy code hardcoded those labels. The new pipeline pulls speaker labels from `DomainConfig.speakers` per call.
 

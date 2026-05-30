@@ -8,8 +8,8 @@ from .schemas import (
 )
 
 __all__ = [
-    "SummaryResponse",
+    "SentimentResponse",
     "Suggestion",
     "SuggestionsResponse",
-    "SentimentResponse",
+    "SummaryResponse",
 ]

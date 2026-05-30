@@ -5,8 +5,8 @@ Revises:
 Create Date: 2026-05-19 00:00:01
 """
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 from pgvector.sqlalchemy import Vector
 from sqlalchemy.dialects import postgresql
 

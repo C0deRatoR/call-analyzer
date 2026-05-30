@@ -22,7 +22,6 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from core.config import settings
 
-
 # ---- Async (FastAPI) ----------------------------------------------------
 
 engine = create_async_engine(

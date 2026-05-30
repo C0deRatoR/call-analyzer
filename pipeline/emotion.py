@@ -8,7 +8,7 @@ Model: j-hartmann/emotion-english-distilroberta-base
 """
 
 import logging
-from typing import Dict, List, Any
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -25,26 +25,26 @@ def _load_pipeline():
 
     try:
         from transformers import pipeline
+
         logger.info("Loading emotion detection model (first run may download ~300MB)...")
         _emotion_pipeline = pipeline(
             "text-classification",
             model="j-hartmann/emotion-english-distilroberta-base",
             top_k=None,  # Return all emotion scores
-            truncation=True
+            truncation=True,
         )
         logger.info("Emotion detection model loaded successfully")
         return _emotion_pipeline
-    except ImportError:
+    except ImportError as e:
         raise RuntimeError(
-            "transformers is not installed. "
-            "Install it with: pip install transformers torch"
-        )
+            "transformers is not installed. Install it with: pip install transformers torch"
+        ) from e
     except Exception as e:
         logger.error(f"Failed to load emotion model: {e}")
-        raise RuntimeError(f"Failed to load emotion model: {str(e)}")
+        raise RuntimeError(f"Failed to load emotion model: {e!s}") from e
 
 
-def detect_emotions(text: str) -> Dict[str, Any]:
+def detect_emotions(text: str) -> dict[str, Any]:
     """
     Detect emotions in a single piece of text.
 
@@ -67,21 +67,14 @@ def detect_emotions(text: str) -> Dict[str, Any]:
         return {
             "primary_emotion": primary["label"],
             "confidence": round(primary["score"], 4),
-            "all_scores": {
-                r["label"]: round(r["score"], 4) for r in sorted_results
-            }
+            "all_scores": {r["label"]: round(r["score"], 4) for r in sorted_results},
         }
     except Exception as e:
         logger.error(f"Emotion detection failed: {e}")
-        return {
-            "primary_emotion": "unknown",
-            "confidence": 0.0,
-            "all_scores": {},
-            "error": str(e)
-        }
+        return {"primary_emotion": "unknown", "confidence": 0.0, "all_scores": {}, "error": str(e)}
 
 
-def detect_emotions_per_turn(turns: List[Dict]) -> List[Dict]:
+def detect_emotions_per_turn(turns: list[dict]) -> list[dict]:
     """
     Detect emotions for each speaker turn from diarization.
 
@@ -102,7 +95,7 @@ def detect_emotions_per_turn(turns: List[Dict]) -> List[Dict]:
                 "primary_emotion": "unknown",
                 "confidence": 0.0,
                 "all_scores": {},
-                "error": str(e)
+                "error": str(e),
             }
         return turns
 
@@ -112,7 +105,7 @@ def detect_emotions_per_turn(turns: List[Dict]) -> List[Dict]:
             turn["emotion"] = {
                 "primary_emotion": "neutral",
                 "confidence": 1.0,
-                "all_scores": {"neutral": 1.0}
+                "all_scores": {"neutral": 1.0},
             }
             continue
 
@@ -125,9 +118,7 @@ def detect_emotions_per_turn(turns: List[Dict]) -> List[Dict]:
             turn["emotion"] = {
                 "primary_emotion": primary["label"],
                 "confidence": round(primary["score"], 4),
-                "all_scores": {
-                    r["label"]: round(r["score"], 4) for r in sorted_results
-                }
+                "all_scores": {r["label"]: round(r["score"], 4) for r in sorted_results},
             }
         except Exception as e:
             logger.error(f"Emotion detection failed for turn {i}: {e}")
@@ -135,14 +126,14 @@ def detect_emotions_per_turn(turns: List[Dict]) -> List[Dict]:
                 "primary_emotion": "unknown",
                 "confidence": 0.0,
                 "all_scores": {},
-                "error": str(e)
+                "error": str(e),
             }
 
     logger.info(f"Emotion detection completed for {len(turns)} turns")
     return turns
 
 
-def get_emotion_summary(turns: List[Dict]) -> Dict[str, Any]:
+def get_emotion_summary(turns: list[dict]) -> dict[str, Any]:
     """
     Aggregate emotion data across all turns into a summary.
 
@@ -158,8 +149,8 @@ def get_emotion_summary(turns: List[Dict]) -> Dict[str, Any]:
         return {"dominant_emotion": "unknown", "emotion_distribution": {}, "emotion_timeline": []}
 
     # Count primary emotions
-    emotion_counts: Dict[str, int] = {}
-    timeline: List[Dict] = []
+    emotion_counts: dict[str, int] = {}
+    timeline: list[dict] = []
 
     for turn in turns:
         emotion_data = turn.get("emotion", {})
@@ -167,20 +158,20 @@ def get_emotion_summary(turns: List[Dict]) -> Dict[str, Any]:
         confidence = emotion_data.get("confidence", 0.0)
 
         emotion_counts[primary] = emotion_counts.get(primary, 0) + 1
-        timeline.append({
-            "speaker": turn.get("speaker", "Unknown"),
-            "start": turn.get("start", 0),
-            "emotion": primary,
-            "confidence": confidence
-        })
+        timeline.append(
+            {
+                "speaker": turn.get("speaker", "Unknown"),
+                "start": turn.get("start", 0),
+                "emotion": primary,
+                "confidence": confidence,
+            }
+        )
 
     # Calculate distribution as percentages
     total = len(turns)
     distribution = {
         emotion: round(count / total, 4)
-        for emotion, count in sorted(
-            emotion_counts.items(), key=lambda x: x[1], reverse=True
-        )
+        for emotion, count in sorted(emotion_counts.items(), key=lambda x: x[1], reverse=True)
     }
 
     # Dominant emotion
@@ -189,7 +180,7 @@ def get_emotion_summary(turns: List[Dict]) -> Dict[str, Any]:
     return {
         "dominant_emotion": dominant,
         "emotion_distribution": distribution,
-        "emotion_timeline": timeline
+        "emotion_timeline": timeline,
     }
 
 

@@ -5,44 +5,45 @@ Produces a clean, structured PDF with all analysis results.
 """
 
 from __future__ import annotations
+
 import logging
 from datetime import datetime
-from typing import Any, Dict
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 # ──────────────────────────────────────────────
 # Colour palette (RGB tuples)
 # ──────────────────────────────────────────────
-C_BRAND      = (99,  102, 241)   # indigo-500
-C_BRAND_DARK = (67,  56,  202)   # indigo-700
-C_ACCENT     = (139, 92,  246)   # violet-500
-C_BG_LIGHT   = (248, 249, 252)   # near-white
-C_BG_CARD    = (241, 245, 249)   # slate-100
-C_TEXT_DARK  = (30,  41,  59)    # slate-800
-C_TEXT_MID   = (100, 116, 139)   # slate-500
-C_TEXT_LIGHT = (148, 163, 184)   # slate-400
+C_BRAND = (99, 102, 241)  # indigo-500
+C_BRAND_DARK = (67, 56, 202)  # indigo-700
+C_ACCENT = (139, 92, 246)  # violet-500
+C_BG_LIGHT = (248, 249, 252)  # near-white
+C_BG_CARD = (241, 245, 249)  # slate-100
+C_TEXT_DARK = (30, 41, 59)  # slate-800
+C_TEXT_MID = (100, 116, 139)  # slate-500
+C_TEXT_LIGHT = (148, 163, 184)  # slate-400
 
-EMOTION_COLOURS: Dict[str, tuple] = {
-    "joy":      (34,  197, 94),
-    "anger":    (239, 68,  68),
-    "sadness":  (59,  130, 246),
-    "fear":     (168, 85,  247),
+EMOTION_COLOURS: dict[str, tuple] = {
+    "joy": (34, 197, 94),
+    "anger": (239, 68, 68),
+    "sadness": (59, 130, 246),
+    "fear": (168, 85, 247),
     "surprise": (245, 158, 11),
-    "disgust":  (132, 204, 22),
-    "neutral":  (107, 114, 128),
+    "disgust": (132, 204, 22),
+    "neutral": (107, 114, 128),
 }
 
-SENTIMENT_COLOURS: Dict[str, tuple] = {
-    "very_positive": (16,  185, 129),
-    "positive":      (34,  197, 94),
-    "neutral":       (107, 114, 128),
-    "negative":      (245, 158, 11),
-    "very_negative": (239, 68,  68),
+SENTIMENT_COLOURS: dict[str, tuple] = {
+    "very_positive": (16, 185, 129),
+    "positive": (34, 197, 94),
+    "neutral": (107, 114, 128),
+    "negative": (245, 158, 11),
+    "very_negative": (239, 68, 68),
 }
 
 
-def generate_pdf_report(data: Dict[str, Any]) -> bytes:
+def generate_pdf_report(data: dict[str, Any]) -> bytes:
     """
     Generate a styled PDF report from analysis data.
 
@@ -58,8 +59,8 @@ def generate_pdf_report(data: Dict[str, Any]) -> bytes:
     """
     try:
         from fpdf import FPDF
-    except ImportError:
-        raise ImportError("fpdf2 is not installed. Run: pip install fpdf2")
+    except ImportError as e:
+        raise ImportError("fpdf2 is not installed. Run: pip install fpdf2") from e
 
     class PDF(FPDF):
         def header(self):
@@ -83,7 +84,12 @@ def generate_pdf_report(data: Dict[str, Any]) -> bytes:
             self.set_font("Helvetica", "", 8)
             self.set_text_color(*C_TEXT_MID)
             ts = datetime.now().strftime("%Y-%m-%d %H:%M")
-            self.cell(0, 8, f"  Generated {ts}  |  CallAnalyzer AI Report  |  Page {self.page_no()}", align="C")
+            self.cell(
+                0,
+                8,
+                f"  Generated {ts}  |  CallAnalyzer AI Report  |  Page {self.page_no()}",
+                align="C",
+            )
 
     pdf = PDF()
     pdf.set_margins(18, 22, 18)
@@ -123,7 +129,7 @@ def generate_pdf_report(data: Dict[str, Any]) -> bytes:
             pdf.ln(3)
             _score_bar(pdf, "Positive", vader.get("positive", 0), (34, 197, 94))
             _score_bar(pdf, "Negative", vader.get("negative", 0), (239, 68, 68))
-            _score_bar(pdf, "Neutral",  vader.get("neutral",  0), (107, 114, 128))
+            _score_bar(pdf, "Neutral", vader.get("neutral", 0), (107, 114, 128))
             compound = vader.get("compound", 0)
             _sub_text(pdf, f"Compound score: {compound:+.3f}")
 
@@ -167,7 +173,7 @@ def generate_pdf_report(data: Dict[str, Any]) -> bytes:
         # Render as a wrapped list of pills (simulated)
         pdf.set_font("Helvetica", "", 9)
         pdf.set_text_color(*C_TEXT_DARK)
-        kw_texts = [f"{kw['keyword']} ({round(kw['score']*100)}%)" for kw in keywords]
+        kw_texts = [f"{kw['keyword']} ({round(kw['score'] * 100)}%)" for kw in keywords]
         _body_text(pdf, "  •  ".join(kw_texts))
         pdf.ln(5)
 
@@ -176,12 +182,14 @@ def generate_pdf_report(data: Dict[str, Any]) -> bytes:
     if suggestions:
         _card_header(pdf, "\ud83d\udca1  AI Suggestions")
         lines = [
-            ln.strip() for ln in suggestions.split("\n")
+            ln.strip()
+            for ln in suggestions.split("\n")
             if ln.strip() and not ln.strip().startswith("#")
         ]
         for line in lines:
             # Strip leading numbering / bullets
             import re
+
             clean = re.sub(r"^[\d\.\*\•\-]+\s*", "", line).strip()
             if clean:
                 _bullet_item(pdf, clean)
@@ -193,24 +201,24 @@ def generate_pdf_report(data: Dict[str, Any]) -> bytes:
         pdf.add_page()
         _card_header(pdf, "\ud83d\udcac  Transcript")
 
-        SPEAKER_COLOURS = {
+        speaker_colours = {
             "counselor": C_BRAND,
-            "student":   C_ACCENT,
+            "student": C_ACCENT,
             "speaker a": C_BRAND,
             "speaker b": C_ACCENT,
         }
 
         for turn in turns:
             speaker = turn.get("speaker", "Speaker")
-            text    = turn.get("text", "")
-            start   = turn.get("start", 0)
+            text = turn.get("text", "")
+            start = turn.get("start", 0)
             emotion = turn.get("emotion", {})
 
             mins = int(start // 60)
             secs = int(start % 60)
             ts_str = f"{mins:02d}:{secs:02d}"
 
-            colour = SPEAKER_COLOURS.get(speaker.lower(), C_TEXT_MID)
+            colour = speaker_colours.get(speaker.lower(), C_TEXT_MID)
 
             # Speaker label
             pdf.set_font("Helvetica", "B", 8)
@@ -237,6 +245,7 @@ def generate_pdf_report(data: Dict[str, Any]) -> bytes:
 # ─────────────────────────────────────
 # Helper draw functions
 # ─────────────────────────────────────
+
 
 def _section_title(pdf, text: str, is_main: bool = False):
     size = 20 if is_main else 14
@@ -294,11 +303,7 @@ def _label_pill(pdf, label: str, colour: tuple):
     pdf.set_fill_color(r, g, b)
     pdf.set_text_color(255, 255, 255)
     pdf.set_font("Helvetica", "B", 8.5)
-    pdf.cell(
-        pdf.get_string_width(label) + 8, 6,
-        label, fill=True,
-        new_x="LMARGIN", new_y="NEXT"
-    )
+    pdf.cell(pdf.get_string_width(label) + 8, 6, label, fill=True, new_x="LMARGIN", new_y="NEXT")
     pdf.set_text_color(*C_TEXT_DARK)
     pdf.ln(2)
 

@@ -7,30 +7,29 @@ Supports multiple model sizes for speed/accuracy tradeoffs.
 
 import logging
 import os
-from typing import Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
 # Global model cache to avoid reloading on every request
 _whisper_model = None
-_current_model_size: Optional[str] = None
+_current_model_size: str | None = None
 
 
-def get_available_models() -> Dict[str, str]:
+def get_available_models() -> dict[str, str]:
     """Return available Whisper model sizes and descriptions."""
     return {
         "tiny": "Fastest, least accurate (~39 MB)",
         "base": "Good balance of speed and accuracy (~74 MB)",
         "small": "Better accuracy, slower (~244 MB)",
         "medium": "High accuracy, much slower (~769 MB)",
-        "large": "Highest accuracy, slowest (~1550 MB)"
+        "large": "Highest accuracy, slowest (~1550 MB)",
     }
 
 
 def _load_model(model_size: str = "base"):
     """
     Load and cache the Whisper model.
-    
+
     Args:
         model_size: One of 'tiny', 'base', 'small', 'medium', 'large'
     """
@@ -43,32 +42,34 @@ def _load_model(model_size: str = "base"):
 
     try:
         import whisper
-        logger.info(f"Loading Whisper '{model_size}' model (this may take a moment on first run)...")
+
+        logger.info(
+            f"Loading Whisper '{model_size}' model (this may take a moment on first run)..."
+        )
         _whisper_model = whisper.load_model(model_size)
         _current_model_size = model_size
         logger.info(f"Whisper '{model_size}' model loaded successfully")
         return _whisper_model
-    except ImportError:
+    except ImportError as e:
         raise RuntimeError(
-            "openai-whisper is not installed. "
-            "Install it with: pip install openai-whisper"
-        )
+            "openai-whisper is not installed. Install it with: pip install openai-whisper"
+        ) from e
     except Exception as e:
         logger.error(f"Failed to load Whisper model: {e}")
-        raise RuntimeError(f"Failed to load Whisper model: {str(e)}")
+        raise RuntimeError(f"Failed to load Whisper model: {e!s}") from e
 
 
 def transcribe_audio(filepath: str, model_size: str = "base") -> str:
     """
     Transcribe an audio file using OpenAI Whisper.
-    
+
     Args:
         filepath: Path to the audio file
         model_size: Size of the Whisper model to use
-        
+
     Returns:
         Transcribed text from the audio
-        
+
     Raises:
         FileNotFoundError: If the audio file doesn't exist
         RuntimeError: If transcription fails
@@ -105,19 +106,19 @@ def transcribe_audio(filepath: str, model_size: str = "base") -> str:
         raise
     except Exception as e:
         logger.error(f"Transcription failed: {e}")
-        raise RuntimeError(f"Transcription failed: {str(e)}")
+        raise RuntimeError(f"Transcription failed: {e!s}") from e
 
 
-def transcribe_audio_with_segments(filepath: str, model_size: str = "base") -> Dict:
+def transcribe_audio_with_segments(filepath: str, model_size: str = "base") -> dict:
     """
     Transcribe an audio file and return both full text and timestamped segments.
-    
+
     This is useful for speaker diarization and timeline features later.
-    
+
     Args:
         filepath: Path to the audio file
         model_size: Size of the Whisper model to use
-        
+
     Returns:
         Dictionary with 'text' (full transcript) and 'segments' (list of
         timestamped segments with start, end, and text)
@@ -131,13 +132,15 @@ def transcribe_audio_with_segments(filepath: str, model_size: str = "base") -> D
         logger.info("Transcribing audio with segments...")
         result = model.transcribe(filepath)
 
-        segments: List[Dict] = []
+        segments: list[dict] = []
         for seg in result.get("segments", []):
-            segments.append({
-                "start": round(seg["start"], 2),
-                "end": round(seg["end"], 2),
-                "text": seg["text"].strip()
-            })
+            segments.append(
+                {
+                    "start": round(seg["start"], 2),
+                    "end": round(seg["end"], 2),
+                    "text": seg["text"].strip(),
+                }
+            )
 
         transcript = result.get("text", "").strip()
         logger.info(f"Transcription completed. {len(segments)} segments found.")
@@ -145,14 +148,14 @@ def transcribe_audio_with_segments(filepath: str, model_size: str = "base") -> D
         return {
             "text": transcript,
             "segments": segments,
-            "language": result.get("language", "unknown")
+            "language": result.get("language", "unknown"),
         }
 
     except FileNotFoundError:
         raise
     except Exception as e:
         logger.error(f"Segmented transcription failed: {e}")
-        raise RuntimeError(f"Segmented transcription failed: {str(e)}")
+        raise RuntimeError(f"Segmented transcription failed: {e!s}") from e
 
 
 def clear_model_cache():

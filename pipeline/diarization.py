@@ -7,7 +7,6 @@ detect speaker turns in a two-party conversation (e.g., student + counselor).
 """
 
 import logging
-from typing import Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -16,23 +15,23 @@ DEFAULT_PAUSE_THRESHOLD = 1.5
 
 
 def diarize_from_segments(
-    segments: List[Dict],
+    segments: list[dict],
     pause_threshold: float = DEFAULT_PAUSE_THRESHOLD,
-    speaker_labels: Optional[List[str]] = None
-) -> List[Dict]:
+    speaker_labels: list[str] | None = None,
+) -> list[dict]:
     """
     Assign speaker labels to transcript segments based on pause detection.
-    
+
     When there's a gap of >= pause_threshold seconds between two consecutive
     segments, we assume the speaker has changed.
-    
+
     Args:
         segments: List of segment dicts from Whisper, each with
                   'start', 'end', and 'text' keys.
         pause_threshold: Minimum gap (seconds) to trigger a speaker switch.
         speaker_labels: Custom speaker names. Defaults to
                         ['Counselor', 'Student'].
-    
+
     Returns:
         List of diarized turn dicts, each containing:
         - 'speaker': speaker label
@@ -50,13 +49,13 @@ def diarize_from_segments(
     if len(speaker_labels) < 2:
         speaker_labels = ["Speaker A", "Speaker B"]
 
-    turns: List[Dict] = []
+    turns: list[dict] = []
     current_speaker_idx = 0
     current_turn = {
         "speaker": speaker_labels[current_speaker_idx],
         "text": segments[0]["text"],
         "start": segments[0]["start"],
-        "end": segments[0]["end"]
+        "end": segments[0]["end"],
     }
 
     for i in range(1, len(segments)):
@@ -72,7 +71,7 @@ def diarize_from_segments(
                 "speaker": speaker_labels[current_speaker_idx],
                 "text": segments[i]["text"],
                 "start": segments[i]["start"],
-                "end": segments[i]["end"]
+                "end": segments[i]["end"],
             }
         else:
             # Same speaker continues — merge text
@@ -93,13 +92,13 @@ def format_timestamp(seconds: float) -> str:
     return f"{minutes:02d}:{secs:02d}"
 
 
-def format_diarized_transcript(turns: List[Dict]) -> str:
+def format_diarized_transcript(turns: list[dict]) -> str:
     """
     Format diarized turns into a readable string transcript.
-    
+
     Args:
         turns: List of diarized turn dicts from diarize_from_segments()
-        
+
     Returns:
         Human-readable formatted transcript string
     """

@@ -17,7 +17,7 @@ method when that phase lands. The class boundaries are designed for it.
 import json
 import logging
 import time
-from typing import Type, TypeVar
+from typing import TypeVar
 
 import google.generativeai as genai
 from pydantic import BaseModel, ValidationError
@@ -57,7 +57,7 @@ class GeminiClient:
     def _call(
         self,
         prompt: str,
-        response_schema: Type[T],
+        response_schema: type[T],
         *,
         temperature: float = 0.2,
     ) -> T:
@@ -105,7 +105,7 @@ class GeminiClient:
                 )
 
             if attempt < MAX_RETRIES - 1:
-                time.sleep(_BASE_DELAY * (2 ** attempt))
+                time.sleep(_BASE_DELAY * (2**attempt))
 
         raise RuntimeError(
             f"Gemini call failed after {MAX_RETRIES} attempts: {last_error}"

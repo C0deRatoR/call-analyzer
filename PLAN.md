@@ -225,14 +225,13 @@ call-analyzer/
 │   └── worker/       # Celery tasks (the pipeline)
 ├── pipeline/
 │   ├── transcription.py
-│   ├── diarization.py        # pyannote-based
-│   ├── dialogue_act.py       # uses our fine-tuned model
+│   ├── diarization.py        # current heuristic; pyannote lands in Phase 2
 │   ├── emotion.py
 │   ├── sentiment.py
 │   ├── keywords.py
-│   ├── analytics.py          # per-speaker metrics
-│   ├── rag.py
-│   └── llm.py2                # Gemini + structured outputs
+│   ├── prompts.py            # domain-aware prompt rendering
+│   ├── report.py             # PDF report generation
+│   └── llm.py                # Gemini + structured outputs
 ├── domains/
 │   ├── counseling.yaml
 │   ├── sales.yaml
@@ -254,8 +253,8 @@ call-analyzer/
 │   └── results/
 ├── infra/
 │   ├── docker-compose.yml
-│   ├── Dockerfile.api
-│   └── Dockerfile.worker
+│   ├── Dockerfile            # multi-target image for API and worker
+│   └── alembic/
 ├── notebooks/                # data exploration, training, analysis
 ├── tests/
 ├── PLAN.md                   # this file
@@ -286,10 +285,10 @@ Estimated total: **10-14 days of focused work** for a student doing this part-ti
 
 ### Phase 2 — Real Diarization + Async Pipeline (2 days)
 - [ ] pyannote.audio integration (requires HF token + accept license)
-- [ ] Celery worker setup
-- [ ] Pipeline split into per-stage Celery tasks
-- [ ] Redis pub/sub for progress events
-- [ ] SSE endpoint `GET /calls/{id}/stream`
+- [ ] Replace the stage-shaped Celery stub with real stage implementations
+- [ ] Split pipeline orchestration so stages can be retried/resumed cleanly
+- [x] Redis pub/sub progress event contract
+- [x] SSE endpoint `GET /calls/{id}/stream`
 - [ ] Per-stage results persisted to Postgres
 
 ### Phase 3 — Custom Model Training (1-2 days) ★ The Centerpiece
@@ -297,7 +296,7 @@ Estimated total: **10-14 days of focused work** for a student doing this part-ti
 - [ ] Train DistilBERT classifier on RTX 4060 (notebook + script)
 - [ ] Evaluate vs. zero-shot Gemini baseline
 - [ ] Model card + push to HF Hub
-- [ ] Wire `pipeline/dialogue_act.py` to use the trained model
+- [ ] Add `pipeline/dialogue_act.py` and wire it to use the trained model
 - [ ] Add dialogue-act-derived analytics
 
 ### Phase 4 — RAG + Citations (2 days)

@@ -9,6 +9,7 @@ No network calls. Verifies:
 """
 
 import pytest
+from pydantic import ValidationError
 
 from core.domains.loader import list_domains, load_domain
 from core.llm.schemas import SentimentResponse, Suggestion, SuggestionsResponse, SummaryResponse
@@ -72,7 +73,9 @@ def test_domain_summary_prompt_renders(domain_id: str):
 @pytest.mark.parametrize("domain_id", [d.id for d in list_domains()])
 def test_domain_suggestions_prompt_renders(domain_id: str):
     domain = load_domain(domain_id)
-    rendered = render_suggestions(domain, SAMPLE_TRANSCRIPT, retrieved_context="[src-1] Some excerpt.")
+    rendered = render_suggestions(
+        domain, SAMPLE_TRANSCRIPT, retrieved_context="[src-1] Some excerpt."
+    )
     assert domain.speakers.primary in rendered
 
 
@@ -102,7 +105,7 @@ def test_summary_response_valid():
 
 
 def test_summary_response_missing_required_field():
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         SummaryResponse.model_validate({"key_topics": []})
 
 
@@ -138,5 +141,5 @@ def test_sentiment_response_compound_out_of_range():
         "key_emotions": [],
         "arc_description": "All good.",
     }
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         SentimentResponse.model_validate(payload)

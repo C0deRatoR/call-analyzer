@@ -14,7 +14,9 @@ Supported placeholders (callers must always provide all four):
 from core.domains.schemas import DomainConfig
 
 
-def render(template: str, *, primary: str, secondary: str, transcript: str, retrieved_context: str) -> str:
+def render(
+    template: str, *, primary: str, secondary: str, transcript: str, retrieved_context: str
+) -> str:
     """Return `template` with all placeholders substituted.
 
     Raises:
