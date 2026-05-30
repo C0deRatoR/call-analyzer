@@ -78,6 +78,45 @@ docker compose -f infra/docker-compose.yml logs -f api worker
 docker compose -f infra/docker-compose.yml down
 ```
 
+## Local Handoff Notes
+
+Preferred local workflow for this machine:
+
+- Use the Miniforge/conda environment for Python commands. The tested environment is `ai`.
+- Start only Postgres and Redis with Docker when running the API and worker directly:
+
+```bash
+docker compose -f infra/docker-compose.yml up -d postgres redis
+```
+
+- Run migrations before manual backend testing:
+
+```bash
+PYTHONPATH=. /home/k0de/miniforge3/bin/conda run -n ai alembic upgrade head
+```
+
+- Run the API locally:
+
+```bash
+PYTHONPATH=. /home/k0de/miniforge3/envs/ai/bin/uvicorn apps.api.main:app --host 0.0.0.0 --port 8000 --log-level info
+```
+
+- Run the worker locally:
+
+```bash
+PYTHONPATH=. /home/k0de/miniforge3/envs/ai/bin/celery -A apps.worker.celery_app:celery_app worker --loglevel=info --concurrency=1
+```
+
+- Run quality checks through conda:
+
+```bash
+PYTHONPATH=. /home/k0de/miniforge3/bin/conda run -n ai pytest
+PYTHONPATH=. /home/k0de/miniforge3/bin/conda run -n ai ruff check .
+PYTHONPATH=. /home/k0de/miniforge3/bin/conda run -n ai mypy apps core pipeline
+```
+
+Next-session prompt: continue from commit `259dce5` or later. Phase 2 backend first slice is done and locally verified. Build the clean modern frontend for manual Phase 2 testing against the current FastAPI/SSE backend contract.
+
 ## Coding Guidelines
 
 Use Ruff formatting with 100-character line length and Python 3.11+ syntax. Use `snake_case` for modules, functions, variables, and YAML IDs; use `PascalCase` for classes and Pydantic models. Keep domain-specific labels and prompt behavior in `domains/*.yaml` instead of hardcoding counseling, sales, or support assumptions in pipeline code.
