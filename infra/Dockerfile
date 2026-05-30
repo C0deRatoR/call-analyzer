@@ -11,21 +11,22 @@ FROM python:3.12-slim AS builder
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# uv: fast resolver + installer
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
-
 RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /build
 
-# Cache layer: deps first, source later
-COPY pyproject.toml uv.lock ./
+RUN python -m venv /opt/venv \
+ && /opt/venv/bin/pip install --no-cache-dir --upgrade pip
 
-# Install only the runtime (main) dependencies — skip dev/training/eval extras
-RUN uv venv /opt/venv \
- && VIRTUAL_ENV=/opt/venv uv sync --frozen --no-install-project
+COPY pyproject.toml README.md ./
+COPY apps ./apps
+COPY core ./core
+COPY pipeline ./pipeline
+
+# Install only runtime dependencies; dev/training/eval extras stay out of images.
+RUN /opt/venv/bin/pip install --no-cache-dir .
 
 # ===== Runtime base =================================================
 FROM python:3.12-slim AS runtime-base
@@ -51,7 +52,6 @@ COPY --chown=conviq:conviq apps ./apps
 COPY --chown=conviq:conviq core ./core
 COPY --chown=conviq:conviq pipeline ./pipeline
 COPY --chown=conviq:conviq domains ./domains
-COPY --chown=conviq:conviq knowledge_bases ./knowledge_bases
 COPY --chown=conviq:conviq alembic.ini ./alembic.ini
 COPY --chown=conviq:conviq infra/alembic ./infra/alembic
 COPY --chown=conviq:conviq infra/entrypoint-api.sh /usr/local/bin/entrypoint-api.sh

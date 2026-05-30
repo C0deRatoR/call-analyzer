@@ -32,9 +32,8 @@ dependencies = [
     "celery[redis]>=5.4",
     "redis>=5.0",
 
-    # ---- LLM + observability ----
+    # ---- LLM ----
     "google-generativeai>=0.8",
-    "langfuse>=2.50",
 
     # ---- Audio ML ----
     "openai-whisper>=20231117",
@@ -46,12 +45,6 @@ dependencies = [
     # ---- NLP ----
     "keybert>=0.8",
     "vaderSentiment>=3.3",
-
-    # ---- Vector store ----
-    "chromadb>=0.5",
-
-    # ---- Reporting ----
-    "fpdf2>=2.7",
 
     # ---- HTTP / async utilities ----
     "httpx>=0.27",
@@ -108,8 +101,3 @@ warn_unused_ignores = true
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
-
-[dependency-groups]
-dev = [
-    "pytest>=9.0.3",
-]

@@ -30,8 +30,8 @@ At the moment, the worker pipeline is still a deterministic stub. It proves that
 - `domains/`: YAML domain definitions for counseling, sales, and customer support.
 - `infra/`: Docker, Docker Compose, and Alembic migration setup.
 - `tests/`: pytest tests for prompt rendering, schemas, and pipeline contracts.
-- `web/`: static frontend assets.
-- `models/`, `knowledge_bases/`, `eval/`, `notebooks/`: planned areas for model training, RAG content, evaluation, and experiments.
+
+The older static frontend, empty future placeholder directories, and stale report module were removed during cleanup because they did not match the current FastAPI contract.
 
 ## API Layer
 

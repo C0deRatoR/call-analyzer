@@ -21,7 +21,7 @@ class DomainPrompts(BaseModel):
 class DomainRAG(BaseModel):
     """Per-domain knowledge base reference."""
 
-    namespace: str = Field(..., description="Chroma collection name")
+    namespace: str = Field(..., description="Future RAG collection name")
     source_label: str = Field("", description="Human-friendly source name for citations")
 
 

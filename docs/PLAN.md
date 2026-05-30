@@ -211,7 +211,8 @@ All numbers land in `eval/results/latest.json` and feed into a README benchmark 
 - README includes a screenshot of the dashboard
 
 **Docker Compose** (`infra/docker-compose.yml`):
-- Services: `api`, `worker`, `redis`, `postgres`, `langfuse`, `chroma`
+- Services now: `api`, `worker`, `redis`, `postgres`
+- Future services: tracing and vector-store services when observability/RAG land
 - One command launches the whole stack: `docker compose up`
 
 ---
@@ -236,32 +237,18 @@ call-analyzer/
 │   ├── counseling.yaml
 │   ├── sales.yaml
 │   └── customer_support.yaml
-├── knowledge_bases/          # source documents for RAG
-│   ├── counseling/
-│   ├── sales/
-│   └── customer_support/
-├── models/
-│   └── dialogue_act/
-│       ├── train.py
-│       ├── eval.py
-│       ├── notebook.ipynb
-│       └── model_card.md
-├── eval/
-│   ├── golden/               # audio + ground-truth annotations
-│   ├── metrics/
-│   ├── test_regression.py
-│   └── results/
 ├── infra/
 │   ├── docker-compose.yml
 │   ├── Dockerfile            # multi-target image for API and worker
 │   └── alembic/
-├── notebooks/                # data exploration, training, analysis
 ├── tests/
 ├── docs/
 │   └── PLAN.md               # this file
 ├── README.md                 # the recruiter-facing one
-└── pyproject.toml            # poetry or uv
+└── pyproject.toml
 ```
+
+Future phases will create `models/`, `knowledge_bases/`, `eval/`, and notebooks when they contain real artifacts.
 
 ---
 
@@ -273,7 +260,7 @@ Estimated total: **10-14 days of focused work** for a student doing this part-ti
 - [x] Repo restructure to the layout above
 - [x] Switch from `requirements.txt` to `pyproject.toml` (uv)
 - [x] FastAPI skeleton with `/health`, `/calls`, `/domains` endpoints (Pydantic models)
-- [x] Docker Compose with Postgres + Redis + Chroma
+- [x] Docker Compose with Postgres + Redis
 - [x] Alembic migrations for the schema above (`calls`, `turns`, `analytics`, `llm_traces`)
 - [x] Move existing pipeline modules into `pipeline/` unchanged
 

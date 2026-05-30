@@ -15,7 +15,7 @@
 
 </div>
 
-> Upload any audio conversation, pick a domain (counseling, sales, customer support, or your own), and get a complete analysis: real speaker diarization, turn-level emotion + dialogue-act labels from a custom-trained classifier, per-speaker analytics, RAG-grounded coaching suggestions with citations, and a full PDF report — all surfaced live over a streaming async pipeline.
+> Upload any audio conversation, pick a domain (counseling, sales, customer support, or your own), and get a complete analysis: real speaker diarization, turn-level emotion + dialogue-act labels from a custom-trained classifier, per-speaker analytics, and RAG-grounded coaching suggestions with citations — all surfaced live over a streaming async pipeline.
 
 > [!IMPORTANT]
 > **Status:** Active rebuild from a Flask prototype into a production-shaped AI/ML system. See [`docs/PLAN.md`](docs/PLAN.md) for the phased roadmap. Phases 0 and 1 are complete (scaffold, domain system, structured Gemini outputs). Phase 2 (real diarization + async pipeline) is next.
@@ -29,15 +29,15 @@ It's easy to ship a portfolio project that wraps a few AI APIs. This one is deli
 - **A custom-trained model**, not just API calls — fine-tuned DistilBERT classifier (Phase 3) with documented training, eval, and HF Hub release.
 - **An evaluation framework** — golden audio set with WER, DER, F1, and LLM-as-judge metrics, run as part of the regression suite.
 - **Production pipelining** — FastAPI front, Celery workers behind Redis, real-time progress via Server-Sent Events.
-- **Grounded generation** — RAG over per-domain knowledge bases with citation IDs in every suggestion.
-- **Full observability** — every LLM call traced through Langfuse with token, latency, and cost tracking.
+- **Grounded generation** — planned RAG over per-domain knowledge bases with citation IDs in every suggestion.
+- **Full observability** — planned LLM tracing with token, latency, and cost tracking.
 - **Configurability** — domains are YAML files. Add a use case by dropping in a config; no code changes needed.
 
 ---
 
 ## Benchmarks
 
-> Tracked as the project lands each phase. The eval framework (Phase 5) regenerates this table from `eval/results/latest.json`.
+> Tracked as the project lands each phase. Phase 5 will add the eval artifacts that regenerate this table.
 
 | Metric | Baseline | ConvIQ | Δ |
 |---|---:|---:|---:|
@@ -63,7 +63,7 @@ It's easy to ship a portfolio project that wraps a few AI APIs. This one is deli
 │   • POST /calls         upload audio, enqueue, return call_id       │
 │   • GET  /calls/{id}    full result + diarized turns + analytics    │
 │   • GET  /calls/{id}/stream   SSE pipeline progress                 │
-│   • POST /calls/{id}/export   PDF report                            │
+│   • POST /calls/{id}/export   planned report export                 │
 │   • GET  /domains       list configurable domains                   │
 └────────────────────────────────────────────────────────────────────┘
         │                                  │
@@ -76,13 +76,12 @@ It's easy to ship a portfolio project that wraps a few AI APIs. This one is deli
 │   4. HF emotion classifier                │
 │   5. VADER + per-speaker analytics        │
 │   6. KeyBERT keywords                     │
-│   7. RAG retrieval (Chroma)               │
+│   7. RAG retrieval (planned)              │
 │   8. Gemini summary + grounded suggestions│
 │      (structured outputs, citations)      │
 └──────────────────────────────────────────┘
         │                                  │
-        ▼ Langfuse                          ▼ Chroma per-domain KBs
-   (LLM tracing)
+        ▼ planned tracing                   ▼ planned per-domain KBs
 ```
 
 ---
@@ -123,24 +122,28 @@ open http://localhost:8000/docs
 
 The API will be available at `http://localhost:8000`.
 
-> **First launch budget:** ~20–40 min on a good connection. Docker has to pull Postgres/pgvector + Redis + Chroma (~500 MB), then build the API/worker images, which install ~6 GB of ML wheels (torch, transformers, pyannote.audio, openai-whisper). Once everything is up, the first call also downloads the Whisper + pyannote model weights (~1 GB) — that hit is per worker, not per call. Subsequent restarts use cached layers and start in seconds. Don't ctrl-C halfway through and assume it's stuck.
+> **First launch budget:** ~20–40 min on a good connection. Docker has to pull Postgres/pgvector + Redis, then build the API/worker images, which install large ML wheels (torch, transformers, pyannote.audio, openai-whisper). Once everything is up, the first real ML call also downloads model weights — that hit is per worker, not per call. Subsequent restarts use cached layers and start in seconds.
 
 ### Local development (without Docker)
 
 You need Postgres (with pgvector), Redis, and Python 3.12 locally.
 
 ```bash
-# Install all deps (main + dev + training + eval)
-uv sync --all-extras
+# Create and activate a conda environment
+conda create -n conviq python=3.12
+conda activate conviq
+
+# Install all deps inside the conda environment
+python -m pip install -e ".[dev,training,eval]"
 
 # Apply migrations
-uv run alembic upgrade head
+alembic upgrade head
 
 # Terminal 1 — API
-uv run uvicorn apps.api.main:app --reload
+uvicorn apps.api.main:app --reload
 
 # Terminal 2 — Celery worker
-uv run celery -A apps.worker.celery_app:celery_app worker --loglevel=info
+celery -A apps.worker.celery_app:celery_app worker --loglevel=info
 ```
 
 ---
@@ -151,13 +154,13 @@ uv run celery -A apps.worker.celery_app:celery_app worker --loglevel=info
 |---|---|
 | API | FastAPI · Pydantic v2 · gunicorn + uvicorn workers · SSE-Starlette |
 | Queue | Celery · Redis (broker + pub/sub) |
-| Storage | Postgres 16 + pgvector · Chroma |
+| Storage | Postgres 16 + pgvector |
 | Audio ML | OpenAI Whisper · pyannote.audio · HuggingFace transformers · sentence-transformers |
 | NLP | KeyBERT · VADER · fine-tuned DistilBERT _(Phase 3)_ |
 | LLM | Google Gemini 2.0 with structured outputs |
-| Observability | Langfuse (self-hosted) |
-| Reporting | FPDF2 |
-| DX | uv · Ruff · mypy · pytest · Alembic · Docker Compose |
+| Observability | Planned LLM tracing |
+| Reporting | Planned export endpoint |
+| DX | conda · pip · Ruff · mypy · pytest · Alembic · Docker Compose |
 
 ---
 
@@ -165,7 +168,7 @@ uv run celery -A apps.worker.celery_app:celery_app worker --loglevel=info
 
 See [`docs/PLAN.md`](docs/PLAN.md) for the full phased plan. Quick view:
 
-- [x] **Phase 0** — Foundations (FastAPI/Celery/Postgres/Redis/Chroma scaffold, repo restructure, Alembic migrations)
+- [x] **Phase 0** — Foundations (FastAPI/Celery/Postgres/Redis scaffold, repo restructure, Alembic migrations)
 - [x] **Phase 1** — Domain system (YAML loader + 3 configs) + structured Gemini outputs + prompt renderer
 - [ ] **Phase 2** — pyannote diarization + real async pipeline + SSE streaming
 - [ ] **Phase 3** — ⭐ Custom DistilBERT dialogue-act classifier (training notebook + HF Hub release + benchmark)

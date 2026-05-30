@@ -202,7 +202,7 @@ async def stream_progress(
 
 @router.post("/{call_id}/export", status_code=501)
 async def export_pdf(call_id: uuid.UUID) -> dict:
-    """Generate a PDF report. Wired to `pipeline/report.py` in Phase 4."""
+    """Generate a PDF report after the new pipeline result shape is finalized."""
     raise HTTPException(
         status_code=501,
         detail="PDF export will be re-enabled in Phase 4 after the new pipeline lands.",

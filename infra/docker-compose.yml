@@ -31,14 +31,6 @@ services:
       timeout: 3s
       retries: 5
 
-  chroma:
-    image: chromadb/chroma:latest
-    container_name: conviq-chroma
-    expose:
-      - "8000"
-    volumes:
-      - chroma_data:/chroma/chroma
-
   api:
     build:
       context: ..
@@ -55,8 +47,6 @@ services:
       REDIS_URL: redis://redis:6379/0
       CELERY_BROKER_URL: redis://redis:6379/1
       CELERY_RESULT_BACKEND: redis://redis:6379/2
-      CHROMA_HOST: chroma
-      CHROMA_PORT: "8000"
       APP_ENV: production
     ports:
       - "8000:8000"
@@ -81,8 +71,6 @@ services:
       REDIS_URL: redis://redis:6379/0
       CELERY_BROKER_URL: redis://redis:6379/1
       CELERY_RESULT_BACKEND: redis://redis:6379/2
-      CHROMA_HOST: chroma
-      CHROMA_PORT: "8000"
       APP_ENV: production
     volumes:
       - uploads:/tmp/conviq/uploads
@@ -91,6 +79,5 @@ services:
 volumes:
   postgres_data:
   redis_data:
-  chroma_data:
   uploads:
   hf_cache:

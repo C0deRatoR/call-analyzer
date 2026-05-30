@@ -19,13 +19,13 @@ Deliver a resume-grade, production-shaped **real-time + async conversation intel
 ### Scope
 - Align API contracts and frontend integration path with current FastAPI routes.
 - Stabilize upload -> queue -> status flow using real SSE events from Redis pub/sub.
-- Remove/stub legacy frontend assumptions (`/process_audio`).
+- Keep any future client aligned with the FastAPI `/calls` contract.
 
 ### Repo Touchpoints
 - `apps/api/routers/calls.py`
 - `apps/worker/tasks/pipeline.py`
 - `apps/worker/celery_app.py`
-- `web/scripts/app.js` (or replace with new client path)
+- Future client path, once a frontend is reintroduced
 
 ### Tasks
 - Implement real SSE subscription to `pipeline:{call_id}` channel.
@@ -49,7 +49,7 @@ Deliver a resume-grade, production-shaped **real-time + async conversation intel
 ### Repo Touchpoints
 - New: `apps/api/routers/realtime.py`
 - `apps/api/main.py`
-- New client code under `web/` (or separate frontend app)
+- New client code, likely as a separate frontend app
 
 ### Tasks
 - Add session bootstrap endpoint for real-time client auth/session data.
@@ -204,4 +204,3 @@ Deliver a resume-grade, production-shaped **real-time + async conversation intel
 - Improved coaching reliability by enforcing citation-gated generation, reducing unsupported suggestions by **X%**.
 - Implemented continuous eval gates (WER/DER/F1/groundedness/latency/cost), preventing regressions across model and prompt updates.
 - Added end-to-end tracing and failure taxonomy, reducing investigation time from **X min** to **Y min**.
-

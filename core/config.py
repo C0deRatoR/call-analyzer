@@ -27,10 +27,7 @@ class Settings(BaseSettings):
 
     # ---- Paths ----
     uploads_dir: Path = Path("/tmp/conviq/uploads")
-    models_dir: Path = PROJECT_ROOT / "models"
     domains_dir: Path = PROJECT_ROOT / "domains"
-    knowledge_bases_dir: Path = PROJECT_ROOT / "knowledge_bases"
-    chroma_persist_dir: Path = PROJECT_ROOT / ".chroma"
 
     # ---- Database ----
     database_url: str = "postgresql+asyncpg://conviq:conviq@localhost:5432/conviq"
@@ -47,11 +44,6 @@ class Settings(BaseSettings):
     # ---- HuggingFace (pyannote license + model publishing) ----
     hf_token: str = ""
     hf_username: str = ""
-
-    # ---- Langfuse (LLM observability) ----
-    langfuse_host: str = "http://localhost:3000"
-    langfuse_public_key: str = ""
-    langfuse_secret_key: str = ""
 
     # ---- Whisper ----
     whisper_model_size: str = "base"
