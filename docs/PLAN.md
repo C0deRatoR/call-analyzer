@@ -257,7 +257,8 @@ call-analyzer/
 │   └── alembic/
 ├── notebooks/                # data exploration, training, analysis
 ├── tests/
-├── PLAN.md                   # this file
+├── docs/
+│   └── PLAN.md               # this file
 ├── README.md                 # the recruiter-facing one
 └── pyproject.toml            # poetry or uv
 ```
