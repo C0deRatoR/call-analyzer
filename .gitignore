@@ -13,6 +13,7 @@ uploads/
 *.mp3
 *.m4a
 *.flac
+uv.lock
 docs/
 updates.md
 Updates.md
