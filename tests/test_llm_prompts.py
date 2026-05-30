@@ -134,7 +134,7 @@ def test_sentiment_response_valid():
 
 
 def test_sentiment_response_compound_out_of_range():
-    """compound must be within -1..1 per schema Field constraint."""
+    """compound must be within -1..1 without leaking bounds into Gemini schema."""
     payload = {
         "overall_label": "positive",
         "compound": 1.5,  # invalid
@@ -143,3 +143,11 @@ def test_sentiment_response_compound_out_of_range():
     }
     with pytest.raises(ValidationError):
         SentimentResponse.model_validate(payload)
+
+
+def test_sentiment_response_schema_avoids_gemini_unsupported_bounds():
+    schema = SentimentResponse.model_json_schema()
+    compound_schema = schema["properties"]["compound"]
+
+    assert "minimum" not in compound_schema
+    assert "maximum" not in compound_schema

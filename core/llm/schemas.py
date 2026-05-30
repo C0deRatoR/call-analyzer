@@ -5,7 +5,7 @@ uses an OpenAPI subset — keep fields to str/int/float/bool/list[str]/nested
 BaseModel. No Union, no discriminated models, no complex Optional chains.
 """
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class SummaryResponse(BaseModel):
@@ -45,7 +45,7 @@ class SentimentResponse(BaseModel):
     """Emotional arc analysis of a call."""
 
     overall_label: str = Field(..., description="One of: positive, neutral, negative, mixed")
-    compound: float = Field(..., ge=-1.0, le=1.0, description="Aggregate sentiment score -1 to 1")
+    compound: float = Field(..., description="Aggregate sentiment score -1 to 1")
     key_emotions: list[str] = Field(
         default_factory=list,
         description="Dominant emotions detected (e.g. anxiety, hope, frustration)",
@@ -54,6 +54,13 @@ class SentimentResponse(BaseModel):
         ...,
         description="2-3 sentences describing how sentiment evolved through the call",
     )
+
+    @field_validator("compound")
+    @classmethod
+    def validate_compound_range(cls, value: float) -> float:
+        if not -1.0 <= value <= 1.0:
+            raise ValueError("compound must be between -1 and 1")
+        return value
 
 
 class RubricScores(BaseModel):

@@ -9,6 +9,12 @@ def test_pipeline_channel_is_stable():
     assert pipeline_channel("call-123") == "pipeline:call-123"
 
 
+def test_call_status_enum_persists_lowercase_values():
+    from core.db import Call
+
+    assert Call.__table__.c.status.type.enums == ["queued", "processing", "completed", "failed"]
+
+
 def test_pipeline_stages_match_current_contract():
     assert PIPELINE_STAGES == (
         "transcribe",

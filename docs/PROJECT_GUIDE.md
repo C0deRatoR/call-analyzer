@@ -4,7 +4,9 @@
 
 ConvIQ is a conversation intelligence backend. A user uploads an audio conversation, chooses a domain such as counseling, sales, or customer support, and receives structured analysis for that call. The project is being rebuilt from an older prototype into a production-shaped AI/ML system with async processing, configurable domains, typed outputs, and measurable quality.
 
-Current status: the FastAPI/Celery/Postgres/Redis scaffold is in place, domain YAML loading works, structured LLM schemas exist, and Redis-backed SSE progress streaming is wired. The first Phase 2 worker slice now runs real Whisper transcription and Gemini summary/sentiment enrichment. Diarization, turn persistence, dialogue-act classification, RAG, evals, and observability are future phases.
+Current status: the FastAPI/Celery/Postgres/Redis scaffold is in place, domain YAML loading works, structured LLM schemas exist, and Redis-backed SSE progress streaming is wired. The first Phase 2 worker slice now runs real Whisper transcription and Gemini 2.5 Flash summary/sentiment enrichment. Diarization, turn persistence, dialogue-act classification, RAG, evals, and observability are future phases.
+
+Latest verified baseline: a local end-to-end run with Postgres, Redis, the FastAPI API, Celery worker, Whisper `tiny`, and Gemini 2.5 Flash completed successfully. The tested path was upload -> transcription -> summary -> sentiment -> persisted completed call. The next planned validation pass is manual testing through a clean modern frontend wired to the current FastAPI/SSE contract.
 
 ## How The Current System Works
 
@@ -121,7 +123,7 @@ The final system is intended to be:
 
 ### Phase 2: Real Diarization + Async Pipeline - In Progress
 
-- Replace stub stage bodies with real pipeline implementations. First slice complete: Whisper transcription plus Gemini summary/sentiment.
+- Replace stub stage bodies with real pipeline implementations. First slice complete and locally verified: Whisper transcription plus Gemini 2.5 Flash summary/sentiment.
 - Add Whisper transcription from uploaded audio. Complete for the first worker slice.
 - Add pyannote diarization using `HF_TOKEN`.
 - Persist stage outputs to Postgres.
@@ -183,6 +185,8 @@ The old static frontend was removed because it called legacy Flask endpoints. A 
 - `GET /domains`
 
 The UI should open the SSE stream immediately after upload, show stage progress from event payloads, and fetch final results only after a `complete` event.
+
+Near-term frontend goal: build a clean modern UI for manual Phase 2 testing first. The first screen should support domain selection, audio upload, live pipeline progress, and final transcript/summary/sentiment display. Diarized turns and analytics should remain placeholder-free until the backend starts persisting those outputs.
 
 ## Future Hosting Direction
 

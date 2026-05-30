@@ -39,7 +39,7 @@ class Settings(BaseSettings):
 
     # ---- LLM (Gemini) ----
     gemini_api_key: str = ""
-    gemini_model: str = "gemini-2.0-flash-exp"
+    gemini_model: str = "gemini-2.5-flash"
 
     # ---- HuggingFace (pyannote license + model publishing) ----
     hf_token: str = ""

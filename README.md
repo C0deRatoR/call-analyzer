@@ -10,7 +10,7 @@
 [![Postgres + pgvector](https://img.shields.io/badge/Postgres-pgvector-336791.svg?logo=postgresql)](https://github.com/pgvector/pgvector)
 [![Whisper](https://img.shields.io/badge/Audio-OpenAI_Whisper-brightgreen.svg)](https://github.com/openai/whisper)
 [![pyannote.audio](https://img.shields.io/badge/Diarization-pyannote.audio-orange.svg)](https://github.com/pyannote/pyannote-audio)
-[![Gemini](https://img.shields.io/badge/LLM-Gemini_2.0-yellow.svg)](https://deepmind.google/technologies/gemini/)
+[![Gemini](https://img.shields.io/badge/LLM-Gemini_2.5-yellow.svg)](https://deepmind.google/technologies/gemini/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-purple.svg)](https://opensource.org/licenses/MIT)
 
 </div>
@@ -18,7 +18,7 @@
 > Upload any audio conversation, pick a domain (counseling, sales, customer support, or your own), and get a complete analysis: real speaker diarization, turn-level emotion + dialogue-act labels from a custom-trained classifier, per-speaker analytics, and RAG-grounded coaching suggestions with citations — all surfaced live over a streaming async pipeline.
 
 > [!IMPORTANT]
-> **Status:** Active rebuild from a Flask prototype into a production-shaped AI/ML system. See [`docs/PROJECT_GUIDE.md`](docs/PROJECT_GUIDE.md) for the architecture and roadmap. Phases 0 and 1 are complete (scaffold, domain system, structured outputs). Phase 2 is in progress: real Whisper transcription plus Gemini summary/sentiment are wired, with diarization and turn persistence next.
+> **Status:** Active rebuild from a Flask prototype into a production-shaped AI/ML system. See [`docs/PROJECT_GUIDE.md`](docs/PROJECT_GUIDE.md) for the architecture and roadmap. Phases 0 and 1 are complete (scaffold, domain system, structured outputs). Phase 2 is in progress: real Whisper transcription plus Gemini 2.5 Flash summary/sentiment are wired and locally verified, with diarization, turn persistence, and frontend manual testing next.
 
 ---
 
@@ -157,7 +157,7 @@ celery -A apps.worker.celery_app:celery_app worker --loglevel=info
 | Storage | Postgres 16 + pgvector |
 | Audio ML | OpenAI Whisper · pyannote.audio · HuggingFace transformers · sentence-transformers |
 | NLP | KeyBERT · VADER · fine-tuned DistilBERT _(Phase 3)_ |
-| LLM | Google Gemini 2.0 with structured outputs |
+| LLM | Google Gemini 2.5 Flash with structured outputs |
 | Observability | Planned LLM tracing |
 | Reporting | Planned export endpoint |
 | DX | conda · pip · Ruff · mypy · pytest · Alembic · Docker Compose |

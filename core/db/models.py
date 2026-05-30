@@ -63,7 +63,12 @@ class Call(Base):
 
     # Status
     status: Mapped[CallStatus] = mapped_column(
-        SAEnum(CallStatus, name="call_status"), default=CallStatus.QUEUED
+        SAEnum(
+            CallStatus,
+            name="call_status",
+            values_callable=lambda statuses: [status.value for status in statuses],
+        ),
+        default=CallStatus.QUEUED,
     )
     current_stage: Mapped[str | None] = mapped_column(String(50), nullable=True)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
