@@ -2,21 +2,18 @@
 
 import json
 
-from core.pipeline import STUB_PIPELINE_STAGES, pipeline_channel
+from core.pipeline import PIPELINE_STAGES, pipeline_channel
 
 
 def test_pipeline_channel_is_stable():
     assert pipeline_channel("call-123") == "pipeline:call-123"
 
 
-def test_stub_pipeline_stages_match_current_contract():
-    assert STUB_PIPELINE_STAGES == (
+def test_pipeline_stages_match_current_contract():
+    assert PIPELINE_STAGES == (
         "transcribe",
-        "diarize",
-        "classify",
-        "emotion",
-        "keywords",
         "summarize",
+        "sentiment",
     )
 
 
@@ -35,7 +32,7 @@ def test_worker_publish_uses_shared_channel(monkeypatch):
         "call-123",
         "transcribe",
         "Starting transcribe",
-        {"status": "processing", "stub": True},
+        {"status": "processing", "stub": False},
     )
 
     assert published
@@ -47,5 +44,5 @@ def test_worker_publish_uses_shared_channel(monkeypatch):
         "stage": "transcribe",
         "detail": "Starting transcribe",
         "status": "processing",
-        "stub": True,
+        "stub": False,
     }

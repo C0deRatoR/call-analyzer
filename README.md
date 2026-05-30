@@ -18,7 +18,7 @@
 > Upload any audio conversation, pick a domain (counseling, sales, customer support, or your own), and get a complete analysis: real speaker diarization, turn-level emotion + dialogue-act labels from a custom-trained classifier, per-speaker analytics, and RAG-grounded coaching suggestions with citations — all surfaced live over a streaming async pipeline.
 
 > [!IMPORTANT]
-> **Status:** Active rebuild from a Flask prototype into a production-shaped AI/ML system. See [`docs/PROJECT_GUIDE.md`](docs/PROJECT_GUIDE.md) for the architecture and roadmap. Phases 0 and 1 are complete (scaffold, domain system, structured outputs). Phase 2 (real diarization + async pipeline) is next.
+> **Status:** Active rebuild from a Flask prototype into a production-shaped AI/ML system. See [`docs/PROJECT_GUIDE.md`](docs/PROJECT_GUIDE.md) for the architecture and roadmap. Phases 0 and 1 are complete (scaffold, domain system, structured outputs). Phase 2 is in progress: real Whisper transcription plus Gemini summary/sentiment are wired, with diarization and turn persistence next.
 
 ---
 
@@ -170,7 +170,7 @@ See [`docs/PROJECT_GUIDE.md`](docs/PROJECT_GUIDE.md) for the full guide. Quick v
 
 - [x] **Phase 0** — Foundations (FastAPI/Celery/Postgres/Redis scaffold, repo restructure, Alembic migrations)
 - [x] **Phase 1** — Domain system (YAML loader + 3 configs) + structured Gemini outputs + prompt renderer
-- [ ] **Phase 2** — pyannote diarization + real async pipeline + SSE streaming
+- [ ] **Phase 2** — real async pipeline started; pyannote diarization + turn persistence next
 - [ ] **Phase 3** — ⭐ Custom DistilBERT dialogue-act classifier (training notebook + HF Hub release + benchmark)
 - [ ] **Phase 4** — RAG with citations
 - [ ] **Phase 5** — Evaluation framework (WER, DER, F1, LLM-as-judge)

@@ -6,14 +6,13 @@ from typing import Literal, TypedDict
 
 PipelineStatus = Literal["queued", "processing", "completed", "failed"]
 
-STUB_PIPELINE_STAGES: tuple[str, ...] = (
+PIPELINE_STAGES: tuple[str, ...] = (
     "transcribe",
-    "diarize",
-    "classify",
-    "emotion",
-    "keywords",
     "summarize",
+    "sentiment",
 )
+
+STUB_PIPELINE_STAGES: tuple[str, ...] = PIPELINE_STAGES
 
 
 class ProgressEvent(TypedDict, total=False):

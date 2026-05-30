@@ -4,7 +4,7 @@
 
 ConvIQ is a conversation intelligence backend. A user uploads an audio conversation, chooses a domain such as counseling, sales, or customer support, and receives structured analysis for that call. The project is being rebuilt from an older prototype into a production-shaped AI/ML system with async processing, configurable domains, typed outputs, and measurable quality.
 
-Current status: the FastAPI/Celery/Postgres/Redis scaffold is in place, domain YAML loading works, structured LLM schemas exist, and Redis-backed SSE progress streaming is wired. The worker pipeline is still a deterministic stage-shaped stub; real transcription, diarization, model inference, RAG, evals, and observability are future phases.
+Current status: the FastAPI/Celery/Postgres/Redis scaffold is in place, domain YAML loading works, structured LLM schemas exist, and Redis-backed SSE progress streaming is wired. The first Phase 2 worker slice now runs real Whisper transcription and Gemini summary/sentiment enrichment. Diarization, turn persistence, dialogue-act classification, RAG, evals, and observability are future phases.
 
 ## How The Current System Works
 
@@ -13,7 +13,7 @@ Current status: the FastAPI/Celery/Postgres/Redis scaffold is in place, domain Y
 3. The upload is saved under the configured uploads directory.
 4. A `Call` row is created in Postgres with status `queued`.
 5. The API enqueues `conviq.run_pipeline` in Celery.
-6. The worker runs fixed stages: `transcribe`, `diarize`, `classify`, `emotion`, `keywords`, `summarize`.
+6. The worker runs fixed stages: `transcribe`, `summarize`, `sentiment`.
 7. Each stage publishes progress to Redis on `pipeline:{call_id}`.
 8. `GET /calls/{id}/stream` relays those Redis messages as SSE.
 9. The worker writes final status/output or failure details to Postgres.
@@ -38,7 +38,7 @@ Empty future placeholder directories and the stale static frontend were removed.
 - `alembic.ini`: Alembic entry config; points migration commands at `infra/alembic`.
 - `apps/__init__.py`, `core/__init__.py`, etc.: explicit Python package markers. They are not replaced by `pyproject.toml`; they keep imports such as `apps.api.main` and Celery task discovery stable.
 - `core/pipeline.py`: shared API/worker progress contract.
-- `apps/worker/tasks/pipeline.py`: current stage-shaped worker stub.
+- `apps/worker/tasks/pipeline.py`: current stage-shaped worker pipeline.
 - `apps/api/routers/calls.py`: upload, status, SSE stream, and future export endpoints.
 
 ## Development Commands
@@ -119,10 +119,10 @@ The final system is intended to be:
 - Domain-aware prompt renderer.
 - `domain_id` form field on `POST /calls`.
 
-### Phase 2: Real Diarization + Async Pipeline - Next
+### Phase 2: Real Diarization + Async Pipeline - In Progress
 
-- Replace stub stage bodies with real pipeline implementations.
-- Add Whisper transcription from uploaded audio.
+- Replace stub stage bodies with real pipeline implementations. First slice complete: Whisper transcription plus Gemini summary/sentiment.
+- Add Whisper transcription from uploaded audio. Complete for the first worker slice.
 - Add pyannote diarization using `HF_TOKEN`.
 - Persist stage outputs to Postgres.
 - Keep Redis progress events and SSE contract stable.
@@ -183,6 +183,21 @@ The old static frontend was removed because it called legacy Flask endpoints. A 
 - `GET /domains`
 
 The UI should open the SSE stream immediately after upload, show stage progress from event payloads, and fetch final results only after a `complete` event.
+
+## Future Hosting Direction
+
+The intended hosted shape is split by responsibility:
+
+- Vercel for the future clean modern frontend.
+- A container platform such as Render, Railway, Fly.io, or a VPS for the FastAPI API.
+- A separate worker service on the same container platform for Celery.
+- Supabase Postgres with pgvector for the main database and later vector search.
+- Upstash Redis, Render Redis, Railway Redis, or another managed Redis provider for Celery broker/result storage and progress pub/sub.
+- Supabase Storage or Cloudflare R2 for uploaded audio files once the app leaves local development.
+
+Do not try to run the whole system on Vercel. The FastAPI API and especially the Celery worker need long-running Python/ML execution for Whisper, diarization, and model inference. Vercel is a good frontend host, but it is not the right primary runtime for the async ML worker.
+
+The current local implementation stores uploads on local disk. That is fine during Phase 2 development, but production deployment should move uploaded audio to object storage so the API and worker do not depend on sharing the same filesystem.
 
 ## What Not To Reintroduce Prematurely
 
