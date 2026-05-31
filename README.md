@@ -15,10 +15,10 @@
 
 </div>
 
-> Upload any audio conversation, pick a domain (counseling, sales, customer support, or your own), and get a complete analysis: real speaker diarization, turn-level emotion + dialogue-act labels from a custom-trained classifier, per-speaker analytics, and RAG-grounded coaching suggestions with citations — all surfaced live over a streaming async pipeline.
+> Upload any audio conversation and ConvIQ auto-detects the call type (counseling, sales, or customer support) before producing the analysis: real speaker diarization, turn-level emotion + dialogue-act labels from a custom-trained classifier, per-speaker analytics, and RAG-grounded coaching suggestions with citations — all surfaced live over a streaming async pipeline.
 
 > [!IMPORTANT]
-> **Status:** Active rebuild from a Flask prototype into a production-shaped AI/ML system. See [`docs/PROJECT_GUIDE.md`](docs/PROJECT_GUIDE.md) for the architecture and roadmap. Phases 0 and 1 are complete (scaffold, domain system, structured outputs). Phase 2 is in progress: real Whisper transcription plus Gemini 2.5 Flash summary/sentiment are wired and locally verified, with diarization, turn persistence, and frontend manual testing next.
+> **Status:** Active rebuild from a Flask prototype into a production-shaped AI/ML system. See [`docs/PROJECT_GUIDE.md`](docs/PROJECT_GUIDE.md) for the architecture and roadmap. Phases 0 and 1 are complete (scaffold, domain system, structured outputs). Phase 2 is in progress: real Whisper transcription, pyannote diarization, persisted turns, frontend manual testing, and Gemini 2.5 Flash summary/sentiment are wired and locally verified. If `HF_TOKEN` lacks access to the required pyannote model gates, local development falls back to the pause heuristic with a warning.
 
 ---
 
@@ -60,7 +60,7 @@ It's easy to ship a portfolio project that wraps a few AI APIs. This one is deli
                             ▼
 ┌────────────────────────────────────────────────────────────────────┐
 │  FastAPI                                                            │
-│   • POST /calls         upload audio, enqueue, return call_id       │
+│   • POST /calls         upload audio, auto-domain, return call_id   │
 │   • GET  /calls/{id}    full result + diarized turns + analytics    │
 │   • GET  /calls/{id}/stream   SSE pipeline progress                 │
 │   • POST /calls/{id}/export   planned report export                 │
@@ -96,6 +96,8 @@ Each domain is a YAML file under [`domains/`](domains/). Shipped out of the box:
 
 A domain config defines speaker labels, prompt templates, the per-domain rubric (rated by LLM-as-judge), the RAG namespace, and the analytics dimensions surfaced in the dashboard. Drop a new YAML into `domains/` and the system picks it up — no code changes needed.
 
+Uploads default to `domain_id=auto`. After Whisper transcription, the worker uses a deterministic transcript/filename heuristic to choose the best built-in domain and persists the selected `domain_id` on the call before diarization, summary, and sentiment run. API clients can still submit an explicit `domain_id` when testing a specific domain.
+
 ---
 
 ## Quick Start
@@ -104,14 +106,14 @@ A domain config defines speaker labels, prompt templates, the per-domain rubric 
 
 - Docker + Docker Compose
 - A Google Gemini API key — [get one](https://aistudio.google.com/apikey)
-- A HuggingFace account + token, with the `pyannote/speaker-diarization-3.1` license accepted — [link](https://huggingface.co/pyannote/speaker-diarization-3.1)
+- A HuggingFace account + token, with access accepted for `pyannote/speaker-diarization-3.1`, `pyannote/segmentation-3.0`, and `pyannote/speaker-diarization-community-1`
 
 ### Run
 
 ```bash
 # 1. Configure
 cp .env.example .env
-# Fill in GEMINI_API_KEY and HF_TOKEN
+# Fill in GEMINI_API_KEY and HF_TOKEN after accepting the pyannote model gates
 
 # 2. Launch the full stack
 docker compose -f infra/docker-compose.yml up -d --build
@@ -127,6 +129,16 @@ The API will be available at `http://localhost:8000`.
 ### Local development (without Docker)
 
 You need Postgres (with pgvector), Redis, and Python 3.12 locally.
+
+On this machine, the one-command local launcher is:
+
+```bash
+./scripts/dev-local.sh
+```
+
+It starts Docker Postgres/Redis, runs migrations through the Miniforge `ai` env,
+starts the FastAPI API, starts the Celery worker, serves `frontend/`, and opens
+the UI. Press `Ctrl+C` in that terminal to stop everything.
 
 ```bash
 # Create and activate a conda environment
@@ -170,7 +182,7 @@ See [`docs/PROJECT_GUIDE.md`](docs/PROJECT_GUIDE.md) for the full guide. Quick v
 
 - [x] **Phase 0** — Foundations (FastAPI/Celery/Postgres/Redis scaffold, repo restructure, Alembic migrations)
 - [x] **Phase 1** — Domain system (YAML loader + 3 configs) + structured Gemini outputs + prompt renderer
-- [ ] **Phase 2** — real async pipeline started; pyannote diarization + turn persistence next
+- [ ] **Phase 2** — real async pipeline started; Whisper/pyannote/Gemini/frontend manual testing + persisted turns locally verified
 - [ ] **Phase 3** — ⭐ Custom DistilBERT dialogue-act classifier (training notebook + HF Hub release + benchmark)
 - [ ] **Phase 4** — RAG with citations
 - [ ] **Phase 5** — Evaluation framework (WER, DER, F1, LLM-as-judge)

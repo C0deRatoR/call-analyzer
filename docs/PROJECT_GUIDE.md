@@ -2,37 +2,39 @@
 
 ## Purpose
 
-ConvIQ is a conversation intelligence backend. A user uploads an audio conversation, chooses a domain such as counseling, sales, or customer support, and receives structured analysis for that call. The project is being rebuilt from an older prototype into a production-shaped AI/ML system with async processing, configurable domains, typed outputs, and measurable quality.
+ConvIQ is a conversation intelligence backend. A user uploads an audio conversation, ConvIQ auto-selects a domain such as counseling, sales, or customer support, and receives structured analysis for that call. The project is being rebuilt from an older prototype into a production-shaped AI/ML system with async processing, configurable domains, typed outputs, and measurable quality.
 
-Current status: the FastAPI/Celery/Postgres/Redis scaffold is in place, domain YAML loading works, structured LLM schemas exist, and Redis-backed SSE progress streaming is wired. The first Phase 2 worker slice now runs real Whisper transcription and Gemini 2.5 Flash summary/sentiment enrichment. Diarization, turn persistence, dialogue-act classification, RAG, evals, and observability are future phases.
+Current status: the FastAPI/Celery/Postgres/Redis scaffold is in place, domain YAML loading works, structured LLM schemas exist, Redis-backed SSE progress streaming is wired, and the clean frontend has been manually tested against the current backend contract. The Phase 2 worker now runs Whisper transcription, pyannote.audio diarization when `HF_TOKEN` has access to the required pyannote model gates, persisted turn rows, and Gemini 2.5 Flash summary/sentiment enrichment. Dialogue-act classification, RAG, evals, and observability are future phases.
 
-Latest verified baseline: a local end-to-end run with Postgres, Redis, the FastAPI API, Celery worker, Whisper `tiny`, and Gemini 2.5 Flash completed successfully. The tested path was upload -> transcription -> summary -> sentiment -> persisted completed call. The next planned validation pass is manual testing through a clean modern frontend wired to the current FastAPI/SSE contract.
+Latest verified baseline: manual frontend testing has been completed against the FastAPI/SSE contract. A local backend smoke run with Postgres, Redis, FastAPI, Celery, Whisper `tiny`, pyannote.audio, Gemini 2.5 Flash, and `HF_TOKEN` access for `pyannote/speaker-diarization-3.1`, `pyannote/segmentation-3.0`, and `pyannote/speaker-diarization-community-1` completed successfully through upload -> transcription -> pyannote diarization -> turn persistence -> summary -> sentiment -> persisted completed call. The verified sample produced 2 persisted turns, summary, mixed sentiment, and no pipeline warnings. Without model access, local runs intentionally fall back to the pause heuristic and persist turns with a warning.
 
 ## How The Current System Works
 
-1. `POST /calls` receives an audio file and `domain_id`.
-2. The API validates the file extension and domain YAML.
+1. `POST /calls` receives an audio file and optional `domain_id` form field.
+2. The API validates the file extension and validates `domain_id` unless it is `auto`.
 3. The upload is saved under the configured uploads directory.
 4. A `Call` row is created in Postgres with status `queued`.
 5. The API enqueues `conviq.run_pipeline` in Celery.
-6. The worker runs fixed stages: `transcribe`, `summarize`, `sentiment`.
-7. Each stage publishes progress to Redis on `pipeline:{call_id}`.
-8. `GET /calls/{id}/stream` relays those Redis messages as SSE.
-9. The worker writes final status/output or failure details to Postgres.
-10. `GET /calls/{id}` returns persisted call status and results.
+6. The worker runs fixed stages: `transcribe`, `diarize`, `summarize`, `sentiment`.
+7. When `domain_id=auto`, the worker infers the domain after transcription, persists the selected `domain_id`, and uses that domain for speaker labels and LLM prompts.
+8. Each stage publishes progress to Redis on `pipeline:{call_id}`.
+9. `GET /calls/{id}/stream` relays those Redis messages as SSE.
+10. The worker writes final status/output, diarized turns, or failure details to Postgres.
+11. `GET /calls/{id}` returns persisted call status, results, and turn rows.
 
 ## Repository Structure
 
 - `apps/api/`: FastAPI app, routers, and API response schemas.
 - `apps/worker/`: Celery app and pipeline task orchestration.
-- `core/`: shared settings, DB models/sessions, domain loader, LLM schemas, and pipeline contracts.
+- `core/`: shared settings, DB models/sessions, domain loader/auto-inference, LLM schemas, and pipeline contracts.
 - `domains/`: YAML configs for counseling, sales, and customer support.
 - `infra/`: Docker Compose, Dockerfile, Alembic environment, and migrations.
 - `pipeline/`: current analysis modules and prompt/LLM helpers.
 - `tests/`: pytest coverage for prompt rendering and pipeline contracts.
 - `docs/`: this guide.
+- `frontend/`: clean manual-testing frontend targeting the current FastAPI/SSE contract.
 
-Empty future placeholder directories and the stale static frontend were removed. Future phases should recreate `models/`, `knowledge_bases/`, `eval/`, or frontend folders only when they contain real artifacts.
+Empty future placeholder directories and the stale static frontend were removed. Future phases should recreate `models/`, `knowledge_bases/`, or `eval/` only when they contain real artifacts.
 
 ## Important Files
 
@@ -42,6 +44,8 @@ Empty future placeholder directories and the stale static frontend were removed.
 - `core/pipeline.py`: shared API/worker progress contract.
 - `apps/worker/tasks/pipeline.py`: current stage-shaped worker pipeline.
 - `apps/api/routers/calls.py`: upload, status, SSE stream, and future export endpoints.
+- `pipeline/diarization.py`: pyannote diarization alignment plus pause-heuristic fallback.
+- `frontend/app.js`: manual-testing UI wired to `POST /calls`, `GET /calls/{id}/stream`, and `GET /calls/{id}`.
 
 ## Development Commands
 
@@ -54,6 +58,17 @@ python -m pip install -e ".[dev,training,eval]"
 ```
 
 Run locally:
+
+```bash
+./scripts/dev-local.sh
+```
+
+This machine-local launcher starts Docker Postgres/Redis, runs migrations through
+the Miniforge `ai` env, starts FastAPI, starts the Celery worker, serves the
+frontend, and opens the browser. Press `Ctrl+C` in that terminal to stop
+everything.
+
+Manual equivalent:
 
 ```bash
 alembic upgrade head
@@ -83,6 +98,12 @@ docker compose -f infra/docker-compose.yml down
 Preferred local workflow for this machine:
 
 - Use the Miniforge/conda environment for Python commands. The tested environment is `ai`.
+- One-command local startup:
+
+```bash
+./scripts/dev-local.sh
+```
+
 - Start only Postgres and Redis with Docker when running the API and worker directly:
 
 ```bash
@@ -115,7 +136,7 @@ PYTHONPATH=. /home/k0de/miniforge3/bin/conda run -n ai ruff check .
 PYTHONPATH=. /home/k0de/miniforge3/bin/conda run -n ai mypy apps core pipeline
 ```
 
-Next-session prompt: continue from commit `259dce5` or later. Phase 2 backend first slice is done and locally verified. Build the clean modern frontend for manual Phase 2 testing against the current FastAPI/SSE backend contract.
+Next-session prompt: continue from the latest `dev` branch. Manual frontend testing is done, pyannote-backed validation works after `HF_TOKEN` access was configured, and the UI now submits `domain_id=auto`. Continue toward dialogue-act labels and per-speaker analytics after verifying the latest manual frontend run.
 
 ## Coding Guidelines
 
@@ -158,14 +179,15 @@ The final system is intended to be:
 - Three starter domains: counseling, sales, customer support.
 - Structured LLM response schemas.
 - Domain-aware prompt renderer.
-- `domain_id` form field on `POST /calls`.
+- `domain_id` form field on `POST /calls`, now optional for clients that want automatic domain selection.
 
 ### Phase 2: Real Diarization + Async Pipeline - In Progress
 
 - Replace stub stage bodies with real pipeline implementations. First slice complete and locally verified: Whisper transcription plus Gemini 2.5 Flash summary/sentiment.
 - Add Whisper transcription from uploaded audio. Complete for the first worker slice.
-- Add pyannote diarization using `HF_TOKEN`.
-- Persist stage outputs to Postgres.
+- Build and manually validate the clean frontend against the FastAPI/SSE contract. Complete.
+- Add pyannote diarization using `HF_TOKEN`. Complete and locally verified after Hugging Face access was accepted for `pyannote/speaker-diarization-3.1`, `pyannote/segmentation-3.0`, and `pyannote/speaker-diarization-community-1`; the pause-heuristic fallback remains for missing model access or runtime failures.
+- Persist stage outputs to Postgres. Complete for call-level transcript/summary/sentiment and turn rows.
 - Keep Redis progress events and SSE contract stable.
 - Add retry/resume-friendly boundaries around stages.
 
@@ -200,7 +222,7 @@ The final system is intended to be:
 
 ### Phase 7: Product Polish
 
-- Reintroduce a frontend only after the backend contract is stable.
+- Expand the frontend beyond the manual-testing workflow after the backend contract is stable.
 - Add screenshots, benchmark table, demo video, and final README polish.
 
 ## Strategic Transformation Direction
@@ -216,16 +238,15 @@ The long-term product direction is a real-time + async conversation QA copilot:
 
 ## Frontend Direction
 
-The old static frontend was removed because it called legacy Flask endpoints. A future frontend should target the current FastAPI contract:
+The old static frontend was removed because it called legacy Flask endpoints. The current clean frontend targets the FastAPI contract:
 
 - `POST /calls`
 - `GET /calls/{id}/stream`
 - `GET /calls/{id}`
-- `GET /domains`
 
 The UI should open the SSE stream immediately after upload, show stage progress from event payloads, and fetch final results only after a `complete` event.
 
-Near-term frontend goal: build a clean modern UI for manual Phase 2 testing first. The first screen should support domain selection, audio upload, live pipeline progress, and final transcript/summary/sentiment display. Diarized turns and analytics should remain placeholder-free until the backend starts persisting those outputs.
+Near-term frontend goal: complete the clean modern UI for manual Phase 2 testing first. This is done for automatic domain selection, audio upload, live pipeline progress, and final transcript/summary/sentiment display. The frontend now consumes persisted backend turn rows when present; richer analytics should remain placeholder-free until the backend starts persisting those outputs.
 
 ## Future Hosting Direction
 

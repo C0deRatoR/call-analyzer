@@ -21,10 +21,15 @@ from apps.api.schemas import CallEnqueued, CallRead
 from apps.worker.tasks.pipeline import run_pipeline
 from core.config import settings
 from core.db import Call, CallStatus, get_db
-from core.domains import DomainNotFoundError, load_domain
+from core.domains import AUTO_DOMAIN_ID, DomainNotFoundError, load_domain
 from core.pipeline import pipeline_channel
 
 router = APIRouter(prefix="/calls", tags=["calls"])
+
+
+def _normalize_domain_id(domain_id: str | None) -> str:
+    normalized = (domain_id or AUTO_DOMAIN_ID).strip()
+    return normalized or AUTO_DOMAIN_ID
 
 
 def _validate_extension(filename: str) -> str:
@@ -62,7 +67,7 @@ async def _save_upload(file: UploadFile, ext: str) -> Path:
 async def create_call(
     audio: Annotated[UploadFile, File(description="Audio file")],
     db: Annotated[AsyncSession, Depends(get_db)],
-    domain_id: Annotated[str, Form()] = "counseling",
+    domain_id: Annotated[str, Form()] = AUTO_DOMAIN_ID,
 ) -> CallEnqueued:
     """Upload an audio file and enqueue it for analysis.
 
@@ -75,17 +80,19 @@ async def create_call(
 
     ext = _validate_extension(audio.filename)
 
-    try:
-        load_domain(domain_id)
-    except DomainNotFoundError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
+    normalized_domain_id = _normalize_domain_id(domain_id)
+    if normalized_domain_id != AUTO_DOMAIN_ID:
+        try:
+            load_domain(normalized_domain_id)
+        except DomainNotFoundError as e:
+            raise HTTPException(status_code=400, detail=str(e)) from e
 
     saved_path = await _save_upload(audio, ext)
 
     call = Call(
         audio_filename=audio.filename,
         audio_path=str(saved_path),
-        domain_id=domain_id,
+        domain_id=normalized_domain_id,
         status=CallStatus.QUEUED,
     )
     db.add(call)

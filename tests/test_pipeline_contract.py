@@ -15,9 +15,18 @@ def test_call_status_enum_persists_lowercase_values():
     assert Call.__table__.c.status.type.enums == ["queued", "processing", "completed", "failed"]
 
 
+def test_upload_domain_defaults_to_auto():
+    from apps.api.routers.calls import _normalize_domain_id
+
+    assert _normalize_domain_id(None) == "auto"
+    assert _normalize_domain_id("") == "auto"
+    assert _normalize_domain_id(" sales ") == "sales"
+
+
 def test_pipeline_stages_match_current_contract():
     assert PIPELINE_STAGES == (
         "transcribe",
+        "diarize",
         "summarize",
         "sentiment",
     )

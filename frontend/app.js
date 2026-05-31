@@ -26,7 +26,7 @@ const API_BASE = (localStorage.getItem('conviqApiBase') ||
   (window.location.protocol.startsWith('http') && window.location.port === '8000'
     ? ''
     : 'http://localhost:8000')).replace(/\/$/, '');
-const DEFAULT_DOMAIN_ID = 'counseling';
+const AUTO_DOMAIN_ID = 'auto';
 
 /* ----------------------------- icons (line) ----------------------------- */
 const I = {
@@ -45,8 +45,6 @@ const App = {
   state: 'upload',
   file: null,
   data: null,
-  domains: [],
-  domainId: DEFAULT_DOMAIN_ID,
   callId: null,
   stream: null,
   pollTimer: null,
@@ -64,7 +62,6 @@ window.addEventListener('DOMContentLoaded', () => {
   renderPanel();
   bindKeyboard();
   bindTweaks();
-  loadDomains();
 });
 
 function buildShell() {
@@ -247,7 +244,7 @@ function renderUpload(panel) {
           <span class="underline">was really</span> saying.
         </h1>
         <p class="hero-lede">
-          Upload a counseling call. We'll transcribe it, separate speakers, score sentiment and emotion across every turn, and surface the moments that mattered.
+          Upload a conversation. We'll transcribe it, identify the call type, separate speakers, score sentiment and emotion across every turn, and surface the moments that mattered.
         </p>
 
         <div class="hero-feats">
@@ -278,13 +275,6 @@ function renderUpload(panel) {
 
         <div id="selected-file" class="hidden"></div>
 
-        <label class="domain-picker">
-          <span class="label">Domain</span>
-          <select id="domain-select">
-            ${renderDomainOptions()}
-          </select>
-        </label>
-
         <div class="upload-actions">
           <div class="upload-shortcuts">
             <span><span class="kbd">⌘U</span> Browse</span>
@@ -308,10 +298,8 @@ function renderUpload(panel) {
   const dz = document.getElementById('dropzone');
   const input = document.getElementById('file-input');
   const submit = document.getElementById('btn-submit');
-  const domainSelect = document.getElementById('domain-select');
 
   input.onchange = e => { const f = e.target.files[0]; if (f) selectFile(f); };
-  domainSelect.onchange = e => { App.domainId = e.target.value || DEFAULT_DOMAIN_ID; };
   ['dragenter','dragover'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.add('drag'); }));
   ['dragleave','drop'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.remove('drag'); }));
   dz.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if (f) selectFile(f); });
@@ -349,7 +337,8 @@ function renderProcessing(panel) {
   const steps = [
     { name: 'Uploading',    desc: 'Sending audio' },
     { name: 'Transcribing', desc: 'Whisper ASR' },
-    { name: 'Analyzing',    desc: 'Summary · sentiment' },
+    { name: 'Diarizing',    desc: 'Speaker turns' },
+    { name: 'Enriching',    desc: 'Summary · sentiment' },
     { name: 'Composing',    desc: 'Report view' },
   ];
 
@@ -399,7 +388,7 @@ async function startProcessing(options = {}) {
     setProcessingStage(0, 'Uploading audio', 8);
     const form = new FormData();
     form.append('audio', App.file);
-    form.append('domain_id', App.domainId || DEFAULT_DOMAIN_ID);
+    form.append('domain_id', AUTO_DOMAIN_ID);
 
     const queued = await apiFetch('/calls', { method: 'POST', body: form });
     App.callId = queued.id;
@@ -411,8 +400,8 @@ async function startProcessing(options = {}) {
 }
 
 function simulateProcessing() {
-  const stepLabels = ['Uploading audio', 'Transcribing speech', 'Analyzing emotion + sentiment', 'Drafting suggestions'];
-  const stepDurations = [500, 1500, 1500, 700];
+  const stepLabels = ['Uploading audio', 'Transcribing speech', 'Finding speaker turns', 'Analyzing sentiment', 'Drafting report'];
+  const stepDurations = [500, 1400, 1000, 1300, 700];
   const total = stepDurations.reduce((a, b) => a + b, 0);
   let elapsed = 0, idx = 0;
 
@@ -532,11 +521,12 @@ function updateProgressFromPayload(payload) {
   const detail = payload.detail || stage;
   const map = {
     queued: [0, 'Pipeline queued', 20],
-    transcribe: [1, detail || 'Transcribing speech', 46],
-    summarize: [2, detail || 'Summarizing conversation', 70],
-    sentiment: [2, detail || 'Analyzing sentiment', 84],
-    complete: [3, 'Complete', 100],
-    completed: [3, 'Complete', 100],
+    transcribe: [1, detail || 'Transcribing speech', 42],
+    diarize: [2, detail || 'Finding speaker turns', 58],
+    summarize: [3, detail || 'Summarizing conversation', 74],
+    sentiment: [3, detail || 'Analyzing sentiment', 86],
+    complete: [4, 'Complete', 100],
+    completed: [4, 'Complete', 100],
   };
   const current = map[stage] || [1, detail || 'Processing', 35];
   setProcessingStage(current[0], current[1], current[2]);
@@ -1556,29 +1546,6 @@ async function apiFetch(path, options = {}) {
     throw new Error(message);
   }
   return response.json();
-}
-
-async function loadDomains() {
-  try {
-    App.domains = await apiFetch('/domains');
-    if (!App.domains.some(d => d.id === App.domainId)) {
-      App.domainId = App.domains[0]?.id || DEFAULT_DOMAIN_ID;
-    }
-    if (App.state === 'upload') renderPanel();
-  } catch {
-    App.domains = [];
-  }
-}
-
-function renderDomainOptions() {
-  const domains = App.domains.length
-    ? App.domains
-    : [{ id: DEFAULT_DOMAIN_ID, display_name: 'Counseling' }];
-  return domains.map(domain => `
-    <option value="${escapeHtml(domain.id)}" ${domain.id === App.domainId ? 'selected' : ''}>
-      ${escapeHtml(domain.display_name || domain.id)}
-    </option>
-  `).join('');
 }
 
 async function mockExport() {

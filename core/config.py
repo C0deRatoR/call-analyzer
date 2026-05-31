@@ -44,6 +44,7 @@ class Settings(BaseSettings):
     # ---- HuggingFace (pyannote license + model publishing) ----
     hf_token: str = ""
     hf_username: str = ""
+    pyannote_model: str = "pyannote/speaker-diarization-3.1"
 
     # ---- Whisper ----
     whisper_model_size: str = "base"
