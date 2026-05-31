@@ -10,8 +10,9 @@ const EMOTION_HEX = {
   surprise: '#d49f3f',
   disgust:  '#8a9655',
   neutral:  '#9c8a7b',
+  unknown:  '#6f6a64',
 };
-const EMOTION_RANK = { anger:0, disgust:1, fear:2, sadness:3, neutral:4, surprise:5, joy:6 };
+const EMOTION_RANK = { anger:0, disgust:1, fear:2, sadness:3, neutral:4, unknown:5, surprise:6, joy:7 };
 
 const SENTIMENT_LABEL = {
   very_positive: 'Very Positive',
@@ -257,8 +258,8 @@ function renderUpload(panel) {
             <div class="label-text">Speaker diarization with timestamps</div>
           </div>
           <div class="hero-feat">
-            <div class="num">∞</div>
-            <div class="label-text">Improvement notes from Gemini</div>
+            <div class="num">0</div>
+            <div class="label-text">Ungrounded suggestions in Phase 2</div>
           </div>
         </div>
       </div>
@@ -338,6 +339,7 @@ function renderProcessing(panel) {
     { name: 'Uploading',    desc: 'Sending audio' },
     { name: 'Transcribing', desc: 'Whisper ASR' },
     { name: 'Diarizing',    desc: 'Speaker turns' },
+    { name: 'Analyzing',    desc: 'Emotions · keywords' },
     { name: 'Enriching',    desc: 'Summary · sentiment' },
     { name: 'Composing',    desc: 'Report view' },
   ];
@@ -400,8 +402,8 @@ async function startProcessing(options = {}) {
 }
 
 function simulateProcessing() {
-  const stepLabels = ['Uploading audio', 'Transcribing speech', 'Finding speaker turns', 'Analyzing sentiment', 'Drafting report'];
-  const stepDurations = [500, 1400, 1000, 1300, 700];
+  const stepLabels = ['Uploading audio', 'Transcribing speech', 'Finding speaker turns', 'Extracting analytics', 'Analyzing sentiment', 'Drafting report'];
+  const stepDurations = [500, 1400, 1000, 900, 1300, 700];
   const total = stepDurations.reduce((a, b) => a + b, 0);
   let elapsed = 0, idx = 0;
 
@@ -520,13 +522,14 @@ function updateProgressFromPayload(payload) {
   const stage = payload.stage || payload.status || '';
   const detail = payload.detail || stage;
   const map = {
-    queued: [0, 'Pipeline queued', 20],
-    transcribe: [1, detail || 'Transcribing speech', 42],
-    diarize: [2, detail || 'Finding speaker turns', 58],
-    summarize: [3, detail || 'Summarizing conversation', 74],
-    sentiment: [3, detail || 'Analyzing sentiment', 86],
-    complete: [4, 'Complete', 100],
-    completed: [4, 'Complete', 100],
+    queued: [0, 'Pipeline queued', 16],
+    transcribe: [1, detail || 'Transcribing speech', 34],
+    diarize: [2, detail || 'Finding speaker turns', 50],
+    analytics: [3, detail || 'Extracting analytics', 66],
+    summarize: [4, detail || 'Summarizing conversation', 78],
+    sentiment: [4, detail || 'Analyzing sentiment', 88],
+    complete: [5, 'Complete', 100],
+    completed: [5, 'Complete', 100],
   };
   const current = map[stage] || [1, detail || 'Processing', 35];
   setProcessingStage(current[0], current[1], current[2]);
@@ -579,8 +582,8 @@ function normalizeApiCall(call) {
         text: transcript || 'Transcript is not available yet.',
         start_seconds: 0,
         end_seconds: duration || Math.max(1, Math.round(words / 2.4)),
-        emotion: call.dominant_emotion || 'neutral',
-        emotion_confidence: 0.5,
+        emotion: call.dominant_emotion || 'unknown',
+        emotion_confidence: 0,
       }, 0)];
 
   const emotionDistribution = normalizeEmotionDistribution(
@@ -588,10 +591,12 @@ function normalizeApiCall(call) {
     turns,
     call.dominant_emotion
   );
-  const dominantEmotion = call.dominant_emotion || topEmotion(emotionDistribution);
+  const dominantEmotion = call.dominant_emotion && call.dominant_emotion in EMOTION_HEX
+    ? call.dominant_emotion
+    : topEmotion(emotionDistribution);
   const sentimentLabel = call.sentiment_label || sentimentFromCompound(call.sentiment_compound);
   const sentimentScores = sentimentScoresFromCompound(call.sentiment_compound);
-  const keywords = normalizeKeywords(call.keywords_json, transcript);
+  const keywords = normalizeKeywords(call.keywords_json);
   const suggestions = normalizeSuggestions(call.suggestions_json);
 
   return {
@@ -628,18 +633,23 @@ function normalizeApiCall(call) {
       })),
     },
     keywords: {
-      method: call.keywords_json ? 'pipeline' : 'transcript',
+      method: call.keywords_json ? 'pipeline' : 'unavailable',
       keywords,
       top_keywords: keywords.slice(0, 5).map(k => k.keyword),
     },
+    suggestions_available: suggestions.length > 0,
     suggestion: suggestions.length
       ? suggestions.map((s, i) => `${i + 1}. ${s}`).join('\n')
-      : '1. Suggestions are not available yet. Run the later coaching/RAG phase to populate this section.',
+      : '',
   };
 }
 
 function normalizeTurn(turn, index) {
-  const emotion = turn.emotion || 'neutral';
+  const emotionValue = typeof turn.emotion === 'object'
+    ? turn.emotion?.primary_emotion
+    : turn.emotion;
+  const rawEmotion = emotionValue || 'unknown';
+  const emotion = rawEmotion in EMOTION_HEX ? rawEmotion : 'unknown';
   return {
     speaker: turn.speaker || (index % 2 === 0 ? 'Speaker 1' : 'Speaker 2'),
     text: turn.text || '',
@@ -647,7 +657,7 @@ function normalizeTurn(turn, index) {
     end: Number(turn.end_seconds ?? turn.end ?? turn.start_seconds ?? 0),
     emotion: {
       primary_emotion: emotion,
-      confidence: Number(turn.emotion_confidence ?? turn.emotion?.confidence ?? 0.5),
+      confidence: Number(turn.emotion_confidence ?? turn.emotion?.confidence ?? 0),
     },
   };
 }
@@ -704,9 +714,10 @@ function sentimentScoresFromCompound(compound) {
   };
 }
 
-function normalizeKeywords(raw, transcript) {
-  if (Array.isArray(raw) && raw.length) {
-    return raw.map((item, i) => {
+function normalizeKeywords(raw) {
+  const items = Array.isArray(raw) ? raw : (Array.isArray(raw?.keywords) ? raw.keywords : []);
+  if (items.length) {
+    return items.map((item, i) => {
       if (typeof item === 'string') return { keyword: item, score: Math.max(0.2, 1 - i * 0.06) };
       return {
         keyword: item.keyword || item.term || `keyword ${i + 1}`,
@@ -714,16 +725,7 @@ function normalizeKeywords(raw, transcript) {
       };
     });
   }
-  const words = transcript.toLowerCase().match(/[a-z][a-z-]{4,}/g) || [];
-  const counts = words.reduce((acc, word) => {
-    acc[word] = (acc[word] || 0) + 1;
-    return acc;
-  }, {});
-  const generated = Object.entries(counts)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 10)
-    .map(([keyword], i) => ({ keyword, score: Math.max(0.25, 0.95 - i * 0.06) }));
-  return generated.length ? generated : [{ keyword: 'conversation', score: 0.5 }];
+  return [];
 }
 
 function normalizeSuggestions(raw) {
@@ -765,6 +767,7 @@ function renderOverview(panel) {
   const wc = d.sentiment.detailed_scores.text_stats.word_count;
   const dom = d.emotions.dominant_emotion;
   const domPct = Math.round((d.emotions.emotion_distribution[dom] || 0) * 100);
+  const domColor = EMOTION_HEX[dom] || EMOTION_HEX.unknown;
   const ss = d.sentiment.detailed_scores.vader_scores;
   const sentLabel = d.sentiment.detailed_scores.sentiment_label;
   const sentText = sentimentDisplay(sentLabel);
@@ -794,7 +797,7 @@ function renderOverview(panel) {
         <div class="kpi">
           <div class="kpi-label">Dominant emotion</div>
           <div class="kpi-value" style="text-transform:capitalize">${dom}</div>
-          <div class="kpi-sub"><span class="swatch" style="background:${EMOTION_HEX[dom]}"></span>${domPct}% of turns</div>
+          <div class="kpi-sub"><span class="swatch" style="background:${domColor}"></span>${domPct}% of turns</div>
         </div>
         <div class="kpi">
           <div class="kpi-label">Words spoken</div>
@@ -870,11 +873,11 @@ function renderOverview(panel) {
         </div>
         <div class="card-body">
           <div class="keyword-cloud">
-            ${d.keywords.keywords.slice(0, 10).map((k, i) => {
+            ${d.keywords.keywords.length ? d.keywords.keywords.slice(0, 10).map((k, i) => {
               const size = 22 + Math.round(k.score * 18);
               const italic = i % 3 === 1 ? 'italic' : '';
               return `<span class="kw ${italic}" style="font-size:${size}px">${escapeHtml(k.keyword)}</span>`;
-            }).join('')}
+            }).join('') : '<div class="empty-state">No keywords were persisted for this call.</div>'}
           </div>
         </div>
       </div>
@@ -1083,7 +1086,7 @@ function renderEmotions(panel) {
   const turns = d.diarized_turns;
   const dom = d.emotions.dominant_emotion;
   const totalDur = turns.at(-1).end;
-  const order = ['joy', 'surprise', 'neutral', 'sadness', 'fear', 'disgust', 'anger'];
+  const order = ['joy', 'surprise', 'neutral', 'unknown', 'sadness', 'fear', 'disgust', 'anger'];
 
   panel.innerHTML = panelHead(
     'Section 05 · Emotions',
@@ -1107,9 +1110,9 @@ function renderEmotions(panel) {
                 </div>
               `).join('')}
               ${turns.map(t => {
-                const xPct = (t.start / totalDur) * 100;
+                const xPct = totalDur ? (t.start / totalDur) * 100 : 0;
                 const yIdx = order.indexOf(t.emotion.primary_emotion);
-                const yPct = (yIdx / (order.length - 1)) * 100;
+                const yPct = ((yIdx >= 0 ? yIdx : order.indexOf('unknown')) / (order.length - 1)) * 100;
                 const r = 6 + t.emotion.confidence * 5;
                 return `<div title="${formatTime(t.start)} · ${t.speaker} · ${t.emotion.primary_emotion} ${Math.round(t.emotion.confidence*100)}%"
                   style="position:absolute;left:${xPct}%;top:${yPct}%;width:${r*2}px;height:${r*2}px;border-radius:50%;background:${EMOTION_HEX[t.emotion.primary_emotion]};transform:translate(-50%,-50%);border:2.5px solid var(--card);box-shadow:0 1px 3px rgba(0,0,0,0.1)"></div>`;
@@ -1182,12 +1185,14 @@ function renderEmotions(panel) {
 function renderKeywords(panel) {
   const d = App.data;
   const ks = d.keywords.keywords;
-  const max = ks[0].score;
+  const max = ks.length ? Math.max(...ks.map(k => Number(k.score) || 0), 1) : 1;
 
   panel.innerHTML = panelHead(
     'Section 06 · Keywords',
     `What <span class="ital">surfaced</span>, ranked.`,
-    `${ks.length} terms extracted via ${d.keywords.method}. Size proportional to relevance.`
+    ks.length
+      ? `${ks.length} terms extracted via ${d.keywords.method}. Size proportional to relevance.`
+      : 'Keyword extraction did not persist terms for this call.'
   ) + `
     <div class="panel-body fadein" style="max-width:980px">
 
@@ -1198,11 +1203,11 @@ function renderKeywords(panel) {
         </div>
         <div class="card-body">
           <div class="keyword-cloud">
-            ${ks.map((k, i) => {
+            ${ks.length ? ks.map((k, i) => {
               const size = 20 + Math.round((k.score / max) * 28);
               const italic = i % 3 === 1 ? 'italic' : '';
               return `<span class="kw ${italic}" style="font-size:${size}px">${escapeHtml(k.keyword)}</span>`;
-            }).join('')}
+            }).join('') : '<div class="empty-state">No backend keywords are available for this call.</div>'}
           </div>
         </div>
       </div>
@@ -1214,14 +1219,14 @@ function renderKeywords(panel) {
       <div class="card">
         <div class="card-body">
           <div class="kw-rank-list">
-            ${ks.map((k, i) => `
+            ${ks.length ? ks.map((k, i) => `
               <div class="kw-row">
                 <span class="kw-rank">${String(i+1).padStart(2,'0')}</span>
                 <span class="kw-name">${escapeHtml(k.keyword)}</span>
                 <div class="kw-bar"><div class="kw-fill" style="width:${(k.score/max)*100}%"></div></div>
                 <span class="kw-score-val">${k.score.toFixed(3)}</span>
               </div>
-            `).join('')}
+            `).join('') : '<div class="empty-state">The analytics stage completed without persisted keyword rows.</div>'}
           </div>
         </div>
       </div>
@@ -1233,28 +1238,32 @@ function renderKeywords(panel) {
 /* ---------- Suggestions ---------- */
 function renderSuggestions(panel) {
   const items = parseSuggestions(App.data.suggestion);
+  const hasSuggestions = App.data.suggestions_available && items.length;
   panel.innerHTML = panelHead(
     'Section 07 · Suggestions',
     `Notes for <span class="ital">next time</span>.`,
-    `Counselor-facing improvement notes, drafted by Gemini from the call's transcript and emotion timeline.`,
-    `<button class="btn btn-secondary" id="export-sugg">${I.download}<span>Export .txt</span></button>`
+    hasSuggestions
+      ? 'Grounded coaching suggestions with citations.'
+      : 'Grounded coaching suggestions are reserved for the RAG phase.',
+    hasSuggestions ? `<button class="btn btn-secondary" id="export-sugg">${I.download}<span>Export .txt</span></button>` : ''
   ) + `
     <div class="panel-body fadein" style="max-width:880px">
       <div class="card">
         <div class="card-body">
           <div class="suggestions">
-            ${items.map((s, i) => `
+            ${hasSuggestions ? items.map((s, i) => `
               <div class="suggestion">
                 <div class="suggestion-num">${String(i+1).padStart(2,'0')}.</div>
                 <div class="suggestion-text">${formatInlineEm(s)}</div>
               </div>
-            `).join('')}
+            `).join('') : '<div class="empty-state">No suggestions were generated for this Phase 2 run.</div>'}
           </div>
         </div>
       </div>
     </div>
   `;
-  document.getElementById('export-sugg').onclick = () => showToast('Mock: would export suggestions.txt');
+  const exportButton = document.getElementById('export-sugg');
+  if (exportButton) exportButton.onclick = () => showToast('Suggestions export is not wired yet.');
 }
 
 function parseSuggestions(s) {

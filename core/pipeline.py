@@ -9,6 +9,7 @@ PipelineStatus = Literal["queued", "processing", "completed", "failed"]
 PIPELINE_STAGES: tuple[str, ...] = (
     "transcribe",
     "diarize",
+    "analytics",
     "summarize",
     "sentiment",
 )

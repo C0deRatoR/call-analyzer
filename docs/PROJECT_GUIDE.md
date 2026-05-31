@@ -4,9 +4,9 @@
 
 ConvIQ is a conversation intelligence backend. A user uploads an audio conversation, ConvIQ auto-selects a domain such as counseling, sales, or customer support, and receives structured analysis for that call. The project is being rebuilt from an older prototype into a production-shaped AI/ML system with async processing, configurable domains, typed outputs, and measurable quality.
 
-Current status: the FastAPI/Celery/Postgres/Redis scaffold is in place, domain YAML loading works, structured LLM schemas exist, Redis-backed SSE progress streaming is wired, and the clean frontend has been manually tested against the current backend contract. The Phase 2 worker now runs Whisper transcription, pyannote.audio diarization when `HF_TOKEN` has access to the required pyannote model gates, persisted turn rows, and Gemini 2.5 Flash summary/sentiment enrichment. Dialogue-act classification, RAG, evals, and observability are future phases.
+Current status: the FastAPI/Celery/Postgres/Redis scaffold is in place, domain YAML loading works, structured LLM schemas exist, Redis-backed SSE progress streaming is wired, and the clean frontend has been manually tested against the current backend contract. The Phase 2 worker now runs Whisper transcription, pyannote.audio diarization when `HF_TOKEN` has access to the required pyannote model gates, persisted turn rows, backend-owned emotion/keyword/per-speaker analytics, and Gemini 2.5 Flash summary/sentiment enrichment. Dialogue-act classification, RAG, evals, and observability are future phases.
 
-Latest verified baseline: manual frontend testing has been completed against the FastAPI/SSE contract. A local backend smoke run with Postgres, Redis, FastAPI, Celery, Whisper `tiny`, pyannote.audio, Gemini 2.5 Flash, and `HF_TOKEN` access for `pyannote/speaker-diarization-3.1`, `pyannote/segmentation-3.0`, and `pyannote/speaker-diarization-community-1` completed successfully through upload -> transcription -> pyannote diarization -> turn persistence -> summary -> sentiment -> persisted completed call. The verified sample produced 2 persisted turns, summary, mixed sentiment, and no pipeline warnings. Without model access, local runs intentionally fall back to the pause heuristic and persist turns with a warning.
+Latest verified baseline: manual frontend testing has been completed against the FastAPI/SSE contract. A local backend smoke run on May 31, 2026 with Postgres, Redis, FastAPI, Celery, Whisper `tiny`, pyannote.audio, Hugging Face emotion classification, KeyBERT, Gemini 2.5 Flash, and `HF_TOKEN` access for `pyannote/speaker-diarization-3.1`, `pyannote/segmentation-3.0`, and `pyannote/speaker-diarization-community-1` completed successfully through upload -> transcription -> pyannote diarization -> analytics -> summary -> sentiment -> persisted completed call. The verified frontend upload used a trimmed counseling sample and produced 2 persisted turns with emotions, `dominant_emotion=neutral`, direct emotion distribution, 10 persisted keywords, one `analytics` row with talk time and word counts, summary, mixed sentiment, `suggestions_json=null`, and no pipeline warnings. Without model access, local runs intentionally fall back to the pause heuristic and persist turns with a warning.
 
 ## How The Current System Works
 
@@ -15,11 +15,11 @@ Latest verified baseline: manual frontend testing has been completed against the
 3. The upload is saved under the configured uploads directory.
 4. A `Call` row is created in Postgres with status `queued`.
 5. The API enqueues `conviq.run_pipeline` in Celery.
-6. The worker runs fixed stages: `transcribe`, `diarize`, `summarize`, `sentiment`.
+6. The worker runs fixed stages: `transcribe`, `diarize`, `analytics`, `summarize`, `sentiment`.
 7. When `domain_id=auto`, the worker infers the domain after transcription, persists the selected `domain_id`, and uses that domain for speaker labels and LLM prompts.
 8. Each stage publishes progress to Redis on `pipeline:{call_id}`.
 9. `GET /calls/{id}/stream` relays those Redis messages as SSE.
-10. The worker writes final status/output, diarized turns, or failure details to Postgres.
+10. The worker writes final status/output, diarized turns, backend analytics, or failure details to Postgres.
 11. `GET /calls/{id}` returns persisted call status, results, and turn rows.
 
 ## Repository Structure
@@ -45,6 +45,7 @@ Empty future placeholder directories and the stale static frontend were removed.
 - `apps/worker/tasks/pipeline.py`: current stage-shaped worker pipeline.
 - `apps/api/routers/calls.py`: upload, status, SSE stream, and future export endpoints.
 - `pipeline/diarization.py`: pyannote diarization alignment plus pause-heuristic fallback.
+- `pipeline/emotion.py` and `pipeline/keywords.py`: Phase 2 analytics helpers for turn emotions and keyword extraction.
 - `frontend/app.js`: manual-testing UI wired to `POST /calls`, `GET /calls/{id}/stream`, and `GET /calls/{id}`.
 
 ## Development Commands
@@ -136,7 +137,7 @@ PYTHONPATH=. /home/k0de/miniforge3/bin/conda run -n ai ruff check .
 PYTHONPATH=. /home/k0de/miniforge3/bin/conda run -n ai mypy apps core pipeline
 ```
 
-Next-session prompt: continue from the latest `dev` branch. Manual frontend testing is done, pyannote-backed validation works after `HF_TOKEN` access was configured, and the UI now submits `domain_id=auto`. Continue toward dialogue-act labels and per-speaker analytics after verifying the latest manual frontend run.
+Next-session prompt: continue from the latest `dev` branch. Manual frontend testing is done, pyannote-backed validation works after `HF_TOKEN` access was configured, the UI submits `domain_id=auto`, and Phase 2 analytics now persists turn emotions, direct emotion distribution, keywords, and one per-call analytics row. Continue toward dialogue-act labels; keep coaching suggestions empty until Phase 4 RAG can ground them with citations.
 
 ## Coding Guidelines
 
@@ -187,7 +188,7 @@ The final system is intended to be:
 - Add Whisper transcription from uploaded audio. Complete for the first worker slice.
 - Build and manually validate the clean frontend against the FastAPI/SSE contract. Complete.
 - Add pyannote diarization using `HF_TOKEN`. Complete and locally verified after Hugging Face access was accepted for `pyannote/speaker-diarization-3.1`, `pyannote/segmentation-3.0`, and `pyannote/speaker-diarization-community-1`; the pause-heuristic fallback remains for missing model access or runtime failures.
-- Persist stage outputs to Postgres. Complete for call-level transcript/summary/sentiment and turn rows.
+- Persist stage outputs to Postgres. Complete for call-level transcript/summary/sentiment, turn rows, backend-owned emotions, keywords, direct emotion distribution, and per-call analytics rows.
 - Keep Redis progress events and SSE contract stable.
 - Add retry/resume-friendly boundaries around stages.
 
@@ -246,7 +247,7 @@ The old static frontend was removed because it called legacy Flask endpoints. Th
 
 The UI should open the SSE stream immediately after upload, show stage progress from event payloads, and fetch final results only after a `complete` event.
 
-Near-term frontend goal: complete the clean modern UI for manual Phase 2 testing first. This is done for automatic domain selection, audio upload, live pipeline progress, and final transcript/summary/sentiment display. The frontend now consumes persisted backend turn rows when present; richer analytics should remain placeholder-free until the backend starts persisting those outputs.
+Near-term frontend goal: complete the clean modern UI for manual Phase 2 testing first. This is done for automatic domain selection, audio upload, live pipeline progress, and final transcript/summary/sentiment display. The frontend now consumes persisted backend turn rows, emotions, keywords, and analytics when present; coaching suggestions remain unavailable until the backend starts producing grounded RAG outputs.
 
 ## Future Hosting Direction
 

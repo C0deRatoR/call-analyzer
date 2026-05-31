@@ -27,6 +27,7 @@ def test_pipeline_stages_match_current_contract():
     assert PIPELINE_STAGES == (
         "transcribe",
         "diarize",
+        "analytics",
         "summarize",
         "sentiment",
     )

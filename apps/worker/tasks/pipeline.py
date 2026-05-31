@@ -3,11 +3,11 @@
 The first Phase 2 slice replaces the deterministic stub with real Whisper
 transcription plus Gemini summary/sentiment enrichment:
 
-    transcribe -> diarize -> summarize -> sentiment
+    transcribe -> diarize -> analytics -> summarize -> sentiment
 
-Dialogue-act classification, RAG, and analytics remain future slices. Celery
-tasks use the sync SQLAlchemy session (`SyncSessionLocal`) because worker
-processes do not share FastAPI's async event loop.
+Dialogue-act classification and RAG remain future slices. Celery tasks use the
+sync SQLAlchemy session (`SyncSessionLocal`) because worker processes do not
+share FastAPI's async event loop.
 """
 
 import json
@@ -20,11 +20,13 @@ from celery import shared_task
 
 from apps.worker.celery_app import celery_app  # noqa: F401  (ensures app is registered)
 from core.config import settings
-from core.db import Call, CallStatus, SyncSessionLocal, Turn
+from core.db import Analytics, Call, CallStatus, SyncSessionLocal, Turn
 from core.domains.auto import AUTO_DOMAIN_ID, infer_domain_id
 from core.domains.loader import load_domain
 from core.pipeline import PIPELINE_STAGES, ProgressEvent, pipeline_channel
 from pipeline.diarization import diarize_from_segments, diarize_with_pyannote
+from pipeline.emotion import detect_emotions_per_turn, get_emotion_summary
+from pipeline.keywords import extract_keywords
 from pipeline.llm import gemini_client
 from pipeline.transcription import transcribe_audio_with_segments
 
@@ -120,6 +122,73 @@ def _turn_emotion(turn: dict[str, Any]) -> tuple[str | None, float | None]:
     return None, None
 
 
+def _word_count(text: Any) -> int:
+    return len(str(text or "").split())
+
+
+def _has_emotion_error(turns: list[dict[str, Any]]) -> bool:
+    for turn in turns:
+        emotion = turn.get("emotion")
+        if isinstance(emotion, dict) and emotion.get("error"):
+            return True
+    return False
+
+
+def _emotion_aggregate(turns: list[dict[str, Any]]) -> tuple[str | None, dict[str, float]]:
+    if not any("emotion" in turn for turn in turns):
+        return None, {}
+
+    summary = get_emotion_summary(turns)
+    distribution = summary.get("emotion_distribution") or {}
+    return (
+        str(summary["dominant_emotion"]) if summary.get("dominant_emotion") else None,
+        {str(emotion): _float_value(value) for emotion, value in distribution.items()},
+    )
+
+
+def _speaker_analytics(
+    call_id: str,
+    domain_id: str,
+    turns: list[dict[str, Any]],
+) -> Analytics:
+    primary_label, secondary_label = _speaker_labels_for_domain(domain_id)
+    primary_talk_seconds = 0.0
+    secondary_talk_seconds = 0.0
+    primary_word_count = 0
+    secondary_word_count = 0
+
+    for turn in turns:
+        speaker = str(turn.get("speaker") or "")
+        start = _float_value(turn.get("start"))
+        end = max(_float_value(turn.get("end"), start), start)
+        duration = end - start
+        words = _word_count(turn.get("text"))
+
+        if speaker == primary_label:
+            primary_talk_seconds += duration
+            primary_word_count += words
+        elif speaker == secondary_label:
+            secondary_talk_seconds += duration
+            secondary_word_count += words
+
+    total_talk_seconds = primary_talk_seconds + secondary_talk_seconds
+    talk_time_ratio = primary_talk_seconds / total_talk_seconds if total_talk_seconds else 0.0
+
+    return Analytics(
+        call_id=UUID(call_id),
+        primary_talk_seconds=round(primary_talk_seconds, 4),
+        secondary_talk_seconds=round(secondary_talk_seconds, 4),
+        talk_time_ratio=round(talk_time_ratio, 4),
+        primary_word_count=primary_word_count,
+        secondary_word_count=secondary_word_count,
+        primary_question_count=0,
+        primary_statement_count=0,
+        primary_acknowledgment_count=0,
+        primary_suggestion_count=0,
+        quality_scores_json=None,
+    )
+
+
 def _persist_transcription(call_id: str, result: dict) -> str:
     transcript = str(result.get("text", "")).strip()
     if not transcript:
@@ -137,6 +206,8 @@ def _persist_transcription(call_id: str, result: dict) -> str:
 def _persist_turns(call_id: str, turns: list[dict[str, Any]]) -> None:
     with SyncSessionLocal() as session:
         call = _get_call(session, call_id)
+        call.turns = []
+        session.flush()
         persisted_turns: list[Turn] = []
         for index, turn in enumerate(turns):
             start = _float_value(turn.get("start"))
@@ -173,17 +244,30 @@ def _persist_sentiment(
     *,
     label: str,
     compound: float,
-    key_emotions: list[str],
-    arc_description: str,
 ) -> None:
     with SyncSessionLocal() as session:
         call = _get_call(session, call_id)
         call.sentiment_label = label
         call.sentiment_compound = compound
-        call.emotion_distribution_json = {
-            "key_emotions": key_emotions,
-            "arc_description": arc_description,
-        }
+        session.commit()
+
+
+def _persist_analytics_outputs(
+    call_id: str,
+    *,
+    turns: list[dict[str, Any]],
+    dominant_emotion: str | None,
+    emotion_distribution: dict[str, float],
+    keywords: list[dict[str, Any]],
+    analytics: Analytics,
+) -> None:
+    _persist_turns(call_id, turns)
+    with SyncSessionLocal() as session:
+        call = _get_call(session, call_id)
+        call.dominant_emotion = dominant_emotion
+        call.emotion_distribution_json = emotion_distribution
+        call.keywords_json = keywords
+        call.analytics = analytics
         session.commit()
 
 
@@ -243,8 +327,6 @@ def _run_sentiment(call_id: str, domain_id: str, transcript: str, warnings: list
             call_id,
             label=sentiment.overall_label,
             compound=sentiment.compound,
-            key_emotions=sentiment.key_emotions,
-            arc_description=sentiment.arc_description,
         )
         _publish(
             call_id,
@@ -346,6 +428,76 @@ def _run_diarization(
     return turns
 
 
+def _run_analytics(
+    call_id: str,
+    domain_id: str,
+    transcript: str,
+    turns: list[dict[str, Any]],
+    warnings: list[str],
+) -> None:
+    _publish(call_id, "analytics", "Starting analytics", {"status": "processing", "stub": False})
+    _set_stage(call_id, "analytics")
+
+    annotated_turns = [dict(turn) for turn in turns]
+    try:
+        annotated_turns = detect_emotions_per_turn(annotated_turns)
+        if _has_emotion_error(annotated_turns):
+            warnings.append("analytics emotion classification failed")
+    except Exception as exc:
+        logger.exception("Emotion classification failed for call %s", call_id)
+        warnings.append("analytics emotion classification failed")
+        _publish(
+            call_id,
+            "analytics",
+            f"Emotion classification failed: {exc}",
+            {"status": "processing", "stub": False},
+        )
+
+    dominant_emotion, emotion_distribution = _emotion_aggregate(annotated_turns)
+
+    keyword_items: list[dict[str, Any]] = []
+    try:
+        keyword_result = extract_keywords(transcript)
+        keyword_items = list(keyword_result.get("keywords") or [])
+    except Exception as exc:
+        logger.exception("Keyword extraction failed for call %s", call_id)
+        warnings.append("analytics keyword extraction failed")
+        _publish(
+            call_id,
+            "analytics",
+            f"Keyword extraction failed: {exc}",
+            {"status": "processing", "stub": False},
+        )
+
+    try:
+        analytics = _speaker_analytics(call_id, domain_id, annotated_turns)
+        _persist_analytics_outputs(
+            call_id,
+            turns=annotated_turns,
+            dominant_emotion=dominant_emotion,
+            emotion_distribution=emotion_distribution,
+            keywords=keyword_items,
+            analytics=analytics,
+        )
+    except Exception as exc:
+        logger.exception("Analytics persistence failed for call %s", call_id)
+        warnings.append("analytics persistence failed")
+        _publish(
+            call_id,
+            "analytics",
+            f"Analytics persistence failed: {exc}",
+            {"status": "processing", "stub": False},
+        )
+        return
+
+    _publish(
+        call_id,
+        "analytics",
+        "Completed analytics",
+        {"status": "processing", "stub": False},
+    )
+
+
 def _run_pipeline(call_id: str) -> dict:
     """Run the first real Phase 2 pipeline slice for one call."""
     logger.info("Pipeline started for call %s", call_id)
@@ -378,7 +530,8 @@ def _run_pipeline(call_id: str) -> dict:
             {"status": "processing", "stub": False},
         )
 
-        _run_diarization(call_id, domain_id, audio_path, transcription, warnings)
+        turns = _run_diarization(call_id, domain_id, audio_path, transcription, warnings)
+        _run_analytics(call_id, domain_id, transcript, turns, warnings)
         _run_summary(call_id, domain_id, transcript, warnings)
         _run_sentiment(call_id, domain_id, transcript, warnings)
 

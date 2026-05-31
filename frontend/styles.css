@@ -880,6 +880,15 @@ body::before {
   margin-left: auto;
 }
 .card-body { padding: 18px 22px 22px; }
+.empty-state {
+  width: 100%;
+  padding: 18px 0;
+  font-family: var(--serif);
+  font-size: 18px;
+  line-height: 1.45;
+  color: var(--ink-3);
+  font-style: italic;
+}
 
 /* ---------- Overview ---------- */
 

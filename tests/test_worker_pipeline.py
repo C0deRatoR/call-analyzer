@@ -1,9 +1,10 @@
 """Offline tests for the Celery worker pipeline.
 
-External systems are mocked: no Redis, Postgres, Whisper model, Gemini API, or
-domain files are required for these tests.
+External systems are mocked: no Redis, Postgres, Whisper model, Hugging Face,
+KeyBERT, Gemini API, or domain files are required for these tests.
 """
 
+import json
 from types import SimpleNamespace
 from uuid import uuid4
 
@@ -40,6 +41,9 @@ class FakeSession:
 
     def commit(self) -> None:
         self.commits += 1
+
+    def flush(self) -> None:
+        return None
 
 
 class FakeSessionLocal:
@@ -122,14 +126,38 @@ def _wire_common_mocks(monkeypatch: pytest.MonkeyPatch, call: Call):
             for index, segment in enumerate(segments)
         ]
 
+    def fake_detect_emotions(turns: list[dict]) -> list[dict]:
+        emotions = [("joy", 0.9), ("neutral", 0.8)]
+        for index, turn in enumerate(turns):
+            label, confidence = emotions[index % len(emotions)]
+            turn["emotion"] = {
+                "primary_emotion": label,
+                "confidence": confidence,
+                "all_scores": {label: confidence},
+            }
+        return turns
+
     monkeypatch.setattr(worker_pipeline, "diarize_with_pyannote", fake_diarize_with_pyannote)
+    monkeypatch.setattr(worker_pipeline, "detect_emotions_per_turn", fake_detect_emotions)
+    monkeypatch.setattr(
+        worker_pipeline,
+        "extract_keywords",
+        lambda transcript: {
+            "keywords": [
+                {"keyword": "actual audio", "score": 0.91},
+                {"keyword": "conversation", "score": 0.72},
+            ],
+            "top_keywords": ["actual audio", "conversation"],
+            "method": "test",
+        },
+    )
     return worker_pipeline, fake_redis, fake_sessions
 
 
-def test_pipeline_persists_transcription_summary_and_sentiment(
+def test_pipeline_persists_transcription_analytics_summary_and_sentiment(
     monkeypatch: pytest.MonkeyPatch, call: Call
 ):
-    worker_pipeline, _, _ = _wire_common_mocks(monkeypatch, call)
+    worker_pipeline, fake_redis, _ = _wire_common_mocks(monkeypatch, call)
     monkeypatch.setattr(
         worker_pipeline,
         "transcribe_audio_with_segments",
@@ -159,17 +187,38 @@ def test_pipeline_persists_transcription_summary_and_sentiment(
     assert call.turns[0].text == "Hello"
     assert call.turns[0].start_seconds == pytest.approx(0.0)
     assert call.turns[0].end_seconds == pytest.approx(1.5)
+    assert call.turns[0].emotion == "joy"
+    assert call.turns[0].emotion_confidence == pytest.approx(0.9)
     assert call.turns[1].index == 1
     assert call.turns[1].speaker == "Student"
     assert call.turns[1].text == "from the actual audio."
+    assert call.turns[1].emotion == "neutral"
+    assert call.turns[1].emotion_confidence == pytest.approx(0.8)
+    assert call.dominant_emotion == "joy"
+    assert call.emotion_distribution_json == {"joy": 0.5, "neutral": 0.5}
+    assert call.keywords_json == [
+        {"keyword": "actual audio", "score": 0.91},
+        {"keyword": "conversation", "score": 0.72},
+    ]
+    assert call.analytics is not None
+    assert call.analytics.primary_talk_seconds == pytest.approx(1.5)
+    assert call.analytics.secondary_talk_seconds == pytest.approx(1.65)
+    assert call.analytics.talk_time_ratio == pytest.approx(0.4762)
+    assert call.analytics.primary_word_count == 1
+    assert call.analytics.secondary_word_count == 4
+    assert call.analytics.primary_question_count == 0
+    assert call.analytics.primary_statement_count == 0
+    assert call.analytics.primary_acknowledgment_count == 0
+    assert call.analytics.primary_suggestion_count == 0
     assert call.summary == "Summary for: Hello from the actual audio."
     assert call.sentiment_label == "positive"
     assert call.sentiment_compound == pytest.approx(0.42)
-    assert call.emotion_distribution_json == {
-        "key_emotions": ["hope"],
-        "arc_description": "The call became more constructive.",
-    }
+    assert call.suggestions_json is None
     assert call.error_message is None
+
+    stages = [json.loads(data)["stage"] for _, data in fake_redis.published]
+    assert "analytics" in stages
+    assert stages.index("diarize") < stages.index("analytics") < stages.index("summarize")
 
 
 def test_pipeline_auto_selects_domain_after_transcription(
@@ -251,6 +300,47 @@ def test_pipeline_completes_with_transcript_when_gemini_fails(
     assert call.summary is None
     assert call.sentiment_label is None
     assert call.error_message == "LLM enrichment failed: summary failed; sentiment failed"
+
+
+def test_pipeline_completes_with_warning_when_emotion_analytics_fails(
+    monkeypatch: pytest.MonkeyPatch, call: Call
+):
+    worker_pipeline, _, _ = _wire_common_mocks(monkeypatch, call)
+    monkeypatch.setattr(
+        worker_pipeline,
+        "transcribe_audio_with_segments",
+        lambda path, model_size: {
+            "text": "Analytics can fail without failing the call.",
+            "language": "en",
+            "segments": [{"start": 0.0, "end": 2.0, "text": "Analytics can fail"}],
+        },
+    )
+    monkeypatch.setattr(worker_pipeline, "gemini_client", SuccessfulGemini())
+
+    def fail_emotions(turns: list[dict]) -> list[dict]:
+        raise RuntimeError("emotion model unavailable")
+
+    monkeypatch.setattr(worker_pipeline, "detect_emotions_per_turn", fail_emotions)
+
+    result = worker_pipeline._run_pipeline(str(call.id))
+
+    assert result["status"] == "completed"
+    assert result["warnings"] == ["analytics emotion classification failed"]
+    assert call.status == CallStatus.COMPLETED
+    assert call.current_stage == "complete"
+    assert call.error_message == (
+        "Pipeline completed with warnings: analytics emotion classification failed"
+    )
+    assert call.summary == "Summary for: Analytics can fail without failing the call."
+    assert call.sentiment_label == "positive"
+    assert call.turns[0].emotion is None
+    assert call.dominant_emotion is None
+    assert call.emotion_distribution_json == {}
+    assert call.keywords_json == [
+        {"keyword": "actual audio", "score": 0.91},
+        {"keyword": "conversation", "score": 0.72},
+    ]
+    assert call.analytics is not None
 
 
 def test_pipeline_falls_back_to_pause_diarization_without_hf_token(
