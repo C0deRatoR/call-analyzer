@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "samples": [
+    {
+      "id": "customer_support_refund",
+      "audio_filenames": [
+        "customer_support_refund.mp3"
+      ],
+      "expected_domain_id": "customer_support",
+      "expected_speakers": [
+        "Agent",
+        "Customer"
+      ],
+      "min_turns": 10,
+      "min_speaker_switches": 8,
+      "min_dialogue_act_coverage": 0.5,
+      "required_phrases": [
+        "refund request",
+        "booking 7412",
+        "free cancellation until Thursday",
+        "remaining refund",
+        "$218.40",
+        "payment team"
+      ],
+      "forbidden_phrases": [
+        "not start travel support",
+        "an insulation until Thursday",
+        "content steam",
+        "Shad"
+      ],
+      "allowed_warnings": [
+        "diarization used speaker cue fallback"
+      ]
+    },
+    {
+      "id": "counseling_exam_anxiety",
+      "audio_filenames": [
+        "counseling_exam_anxiety.mp3"
+      ],
+      "expected_domain_id": "counseling",
+      "expected_speakers": [
+        "Counselor",
+        "Student"
+      ],
+      "min_turns": 8,
+      "min_speaker_switches": 6,
+      "min_dialogue_act_coverage": 0.5,
+      "required_phrases": [
+        "exam",
+        "anxiety",
+        "study",
+        "breathing"
+      ],
+      "forbidden_phrases": [],
+      "allowed_warnings": [
+        "diarization used speaker cue fallback",
+        "diarization used pause heuristic"
+      ]
+    },
+    {
+      "id": "sales_discovery_call",
+      "audio_filenames": [
+        "sales_discovery_call.mp3"
+      ],
+      "expected_domain_id": "sales",
+      "expected_speakers": [
+        "Salesperson",
+        "Prospect"
+      ],
+      "min_turns": 8,
+      "min_speaker_switches": 6,
+      "min_dialogue_act_coverage": 0.5,
+      "required_phrases": [
+        "pilot",
+        "budget",
+        "demo",
+        "implementation"
+      ],
+      "forbidden_phrases": [],
+      "allowed_warnings": [
+        "diarization used speaker cue fallback",
+        "diarization used pause heuristic"
+      ]
+    }
+  ]
+}

@@ -39,7 +39,7 @@ class Settings(BaseSettings):
 
     # ---- LLM (Gemini) ----
     gemini_api_key: str = ""
-    gemini_model: str = "gemini-2.5-flash"
+    gemini_model: str = "gemini-2.5-flash-lite"
 
     # ---- HuggingFace (pyannote license + model publishing) ----
     hf_token: str = ""
@@ -47,10 +47,10 @@ class Settings(BaseSettings):
     pyannote_model: str = "pyannote/speaker-diarization-3.1"
 
     # ---- Whisper ----
-    whisper_model_size: str = "base"
+    whisper_model_size: str = "small"
 
     # ---- Custom dialogue-act model ----
-    dialogue_act_model: str = "distilbert-base-uncased"  # overridden post-training
+    dialogue_act_model: str = "models/dialogue-act/distilbert-dailydialog-app-buckets"
 
     # ---- Embeddings (for pgvector + Chroma) ----
     embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
@@ -59,7 +59,6 @@ class Settings(BaseSettings):
     # ---- Upload limits ----
     max_upload_mb: int = 100
     allowed_audio_extensions: tuple[str, ...] = (
-        "wav",
         "mp3",
         "m4a",
         "flac",

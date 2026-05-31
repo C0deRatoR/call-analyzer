@@ -15,10 +15,10 @@
 
 </div>
 
-> Upload any audio conversation and ConvIQ auto-detects the call type (counseling, sales, or customer support) before producing the analysis: real speaker diarization, turn-level emotion + dialogue-act labels from a custom-trained classifier, per-speaker analytics, and RAG-grounded coaching suggestions with citations — all surfaced live over a streaming async pipeline.
+> Upload any audio conversation and ConvIQ auto-detects the call type (counseling, sales, or customer support) before producing the analysis: real speaker diarization, turn-level emotion + dialogue-act labels from a custom-trained classifier, per-speaker analytics, and later RAG-grounded coaching suggestions with citations — all surfaced live over a streaming async pipeline.
 
 > [!IMPORTANT]
-> **Status:** Active rebuild from a Flask prototype into a production-shaped AI/ML system. See [`docs/PROJECT_GUIDE.md`](docs/PROJECT_GUIDE.md) for the architecture and roadmap. Phases 0 and 1 are complete (scaffold, domain system, structured outputs). Phase 2 is in progress: real Whisper transcription, pyannote diarization, persisted turns, frontend manual testing, and Gemini 2.5 Flash summary/sentiment are wired and locally verified. If `HF_TOKEN` lacks access to the required pyannote model gates, local development falls back to the pause heuristic with a warning.
+> **Status:** Active rebuild from a Flask prototype into a production-shaped AI/ML system. See [`docs/PROJECT_GUIDE.md`](docs/PROJECT_GUIDE.md) for the architecture and roadmap. Phases 0, 1, and 2 are complete. Phase 3 v1 is wired: the worker can persist dialogue-act labels/confidence and primary-speaker dialogue-act counts when `DIALOGUE_ACT_MODEL` points at a trained local artifact. If `HF_TOKEN` lacks access to the required pyannote model gates, local development falls back to the pause heuristic with a warning.
 
 ---
 
@@ -26,7 +26,7 @@
 
 It's easy to ship a portfolio project that wraps a few AI APIs. This one is deliberately built to demonstrate the skills a hiring AI/ML engineer actually looks for:
 
-- **A custom-trained model**, not just API calls — fine-tuned DistilBERT classifier (Phase 3) with documented training, eval, and HF Hub release.
+- **A custom-trained model**, not just API calls — fine-tuned DistilBERT classifier with documented training, eval, and optional HF Hub release.
 - **An evaluation framework** — golden audio set with WER, DER, F1, and LLM-as-judge metrics, run as part of the regression suite.
 - **Production pipelining** — FastAPI front, Celery workers behind Redis, real-time progress via Server-Sent Events.
 - **Grounded generation** — planned RAG over per-domain knowledge bases with citation IDs in every suggestion.
@@ -151,6 +151,10 @@ python -m pip install -e ".[dev,training,eval]"
 # Apply migrations
 alembic upgrade head
 
+# Optional: train the local dialogue-act artifact used by DIALOGUE_ACT_MODEL
+python scripts/train_dialogue_act.py \
+  --output-dir models/dialogue-act/distilbert-dailydialog-app-buckets
+
 # Terminal 1 — API
 uvicorn apps.api.main:app --reload
 
@@ -182,8 +186,8 @@ See [`docs/PROJECT_GUIDE.md`](docs/PROJECT_GUIDE.md) for the full guide. Quick v
 
 - [x] **Phase 0** — Foundations (FastAPI/Celery/Postgres/Redis scaffold, repo restructure, Alembic migrations)
 - [x] **Phase 1** — Domain system (YAML loader + 3 configs) + structured Gemini outputs + prompt renderer
-- [ ] **Phase 2** — real async pipeline started; Whisper/pyannote/Gemini/frontend manual testing + persisted turns locally verified
-- [ ] **Phase 3** — ⭐ Custom DistilBERT dialogue-act classifier (training notebook + HF Hub release + benchmark)
+- [x] **Phase 2** — real async pipeline; Whisper/pyannote/Gemini/frontend manual testing + persisted turns locally verified
+- [x] **Phase 3** — ⭐ Custom DistilBERT dialogue-act classifier v1 (runtime, training/eval scripts, persisted turn labels/counts)
 - [ ] **Phase 4** — RAG with citations
 - [ ] **Phase 5** — Evaluation framework (WER, DER, F1, LLM-as-judge)
 - [ ] **Phase 6** — Langfuse observability + multi-call analytics

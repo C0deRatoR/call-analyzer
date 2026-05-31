@@ -5,6 +5,7 @@ from types import SimpleNamespace
 from pipeline.diarization import (
     _annotation_regions,
     assign_speakers_to_segments,
+    diarize_from_explicit_speaker_cues,
     diarize_from_segments,
 )
 
@@ -38,6 +39,59 @@ def test_pause_heuristic_uses_domain_speaker_labels():
     )
 
     assert [turn["speaker"] for turn in turns] == ["Agent", "Customer"]
+
+
+def test_explicit_speaker_cues_split_generated_sample_transcripts():
+    turns = diarize_from_explicit_speaker_cues(
+        [
+            {
+                "start": 0.0,
+                "end": 10.0,
+                "text": (
+                    "Agent speaking, thanks for calling. "
+                    "Customer speaking, I need a refund. "
+                    "Agent speaking, I can help with that."
+                ),
+            }
+        ],
+        speaker_labels=["Agent", "Customer"],
+    )
+
+    assert [turn["speaker"] for turn in turns] == ["Agent", "Customer", "Agent"]
+    assert [turn["text"] for turn in turns] == [
+        "thanks for calling.",
+        "I need a refund.",
+        "I can help with that.",
+    ]
+    assert turns[0]["start"] == 0.0
+    assert turns[-1]["end"] == 10.0
+
+
+def test_explicit_speaker_cues_handle_common_asr_label_variants():
+    turns = diarize_from_explicit_speaker_cues(
+        [
+            {
+                "start": 0.0,
+                "end": 18.0,
+                "text": (
+                    "Consular speaking, thanks for coming in today. "
+                    "Students speaking, I made a timetable. "
+                    "Consular speaking, that sounds frustrating. "
+                    "Students speaking, I would like that."
+                ),
+            }
+        ],
+        speaker_labels=["Counselor", "Student"],
+    )
+
+    assert [turn["speaker"] for turn in turns] == [
+        "Counselor",
+        "Student",
+        "Counselor",
+        "Student",
+    ]
+    assert turns[0]["text"] == "thanks for coming in today."
+    assert turns[2]["text"] == "that sounds frustrating."
 
 
 def test_annotation_regions_supports_pyannote_4_diarize_output():

@@ -23,6 +23,21 @@ def test_upload_domain_defaults_to_auto():
     assert _normalize_domain_id(" sales ") == "sales"
 
 
+def test_wav_uploads_are_not_in_default_supported_formats():
+    from fastapi import HTTPException
+
+    from apps.api.routers.calls import _validate_extension
+
+    try:
+        _validate_extension("sample.wav")
+    except HTTPException as exc:
+        assert exc.status_code == 400
+        assert "Unsupported audio format '.wav'" in str(exc.detail)
+        assert "mp3" in str(exc.detail)
+    else:  # pragma: no cover
+        raise AssertionError("WAV uploads should be rejected")
+
+
 def test_pipeline_stages_match_current_contract():
     assert PIPELINE_STAGES == (
         "transcribe",

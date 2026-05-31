@@ -10,6 +10,7 @@ development and offline tests when a HuggingFace token is not available.
 """
 
 import logging
+import re
 from pathlib import Path
 from typing import Any
 
@@ -21,6 +22,15 @@ DEFAULT_PYANNOTE_MODEL = "pyannote/speaker-diarization-3.1"
 DEFAULT_SPEAKER_LABELS = ["Speaker 1", "Speaker 2"]
 MERGE_SAME_SPEAKER_GAP_SECONDS = 0.75
 _pyannote_pipeline_cache: dict[tuple[str, str], Any] = {}
+
+_SPEAKER_LABEL_ALIASES: dict[str, tuple[str, ...]] = {
+    "agent": ("agent", "agents"),
+    "customer": ("customer", "customers", "caller"),
+    "counselor": ("counselor", "counsellor", "consular", "counselor's"),
+    "student": ("student", "students"),
+    "salesperson": ("salesperson", "sales person", "sales rep", "seller"),
+    "prospect": ("prospect", "prospects", "buyer"),
+}
 
 
 def _normalize_speaker_labels(speaker_labels: list[str] | None = None) -> list[str]:
@@ -183,6 +193,129 @@ def _merge_same_speaker_segments(turns: list[dict[str, Any]]) -> list[dict[str, 
             continue
         merged.append(turn.copy())
     return merged
+
+
+def _speaker_label_aliases(speaker_labels: list[str]) -> dict[str, str]:
+    aliases: dict[str, str] = {}
+    for label in speaker_labels:
+        normalized_label = label.lower()
+        variants = {label, f"{label}s", f"{label}'s"}
+        variants.update(_SPEAKER_LABEL_ALIASES.get(normalized_label, ()))
+        for variant in variants:
+            normalized_variant = re.sub(r"\s+", " ", variant.strip().lower())
+            aliases[normalized_variant] = label
+    return aliases
+
+
+def _speaker_cue_pattern(speaker_labels: list[str]) -> re.Pattern[str]:
+    aliases = sorted(
+        (re.escape(alias) for alias in _speaker_label_aliases(speaker_labels)),
+        key=len,
+        reverse=True,
+    )
+    return re.compile(
+        rf"\b(?P<label>{'|'.join(aliases)})\s+(?:speaking|says|said)\s*[:,.-]?\s*",
+        re.IGNORECASE,
+    )
+
+
+def _append_turn(
+    turns: list[dict[str, Any]],
+    *,
+    speaker: str,
+    text: str,
+    start: float,
+    end: float,
+) -> None:
+    text = text.strip(" ,")
+    if not text:
+        return
+
+    end_value = max(end, start)
+    if (
+        turns
+        and turns[-1]["speaker"] == speaker
+        and start - turns[-1]["end"] <= MERGE_SAME_SPEAKER_GAP_SECONDS
+    ):
+        turns[-1]["text"] = f"{turns[-1]['text']} {text}".strip()
+        turns[-1]["end"] = max(float(turns[-1]["end"]), end_value)
+        return
+
+    turns.append({"speaker": speaker, "text": text, "start": start, "end": end_value})
+
+
+def diarize_from_explicit_speaker_cues(
+    segments: list[dict[str, Any]],
+    speaker_labels: list[str] | None = None,
+) -> list[dict[str, Any]]:
+    """Split generated/sample transcripts that include spoken speaker cues.
+
+    Some local demo audio says phrases such as "Agent speaking" and
+    "Customer speaking" before each utterance. When pyannote cannot run, these
+    cues are stronger than pause timing and prevent the whole transcript from
+    being collapsed into one turn.
+    """
+    segments = _clean_segments(segments)
+    if not segments:
+        return []
+
+    labels = _normalize_speaker_labels(speaker_labels)
+    canonical_by_lower = _speaker_label_aliases(labels)
+    cue_pattern = _speaker_cue_pattern(labels)
+
+    turns: list[dict[str, Any]] = []
+    current_speaker: str | None = None
+    saw_cue = False
+
+    for segment in segments:
+        text = segment["text"]
+        matches = list(cue_pattern.finditer(text))
+        segment_start = float(segment["start"])
+        segment_end = float(segment["end"])
+        segment_duration = max(segment_end - segment_start, 0.0)
+        text_length = max(len(text), 1)
+
+        if not matches:
+            if current_speaker is not None:
+                _append_turn(
+                    turns,
+                    speaker=current_speaker,
+                    text=text,
+                    start=segment_start,
+                    end=segment_end,
+                )
+            continue
+
+        if current_speaker is not None and matches[0].start() > 0:
+            prefix_end = segment_start + segment_duration * (matches[0].start() / text_length)
+            _append_turn(
+                turns,
+                speaker=current_speaker,
+                text=text[: matches[0].start()],
+                start=segment_start,
+                end=prefix_end,
+            )
+
+        for index, match in enumerate(matches):
+            saw_cue = True
+            raw_label = re.sub(r"\s+", " ", match.group("label").lower())
+            current_speaker = canonical_by_lower[raw_label]
+            content_start = match.end()
+            content_end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
+            turn_start = segment_start + segment_duration * (match.start() / text_length)
+            turn_end = segment_start + segment_duration * (content_end / text_length)
+            _append_turn(
+                turns,
+                speaker=current_speaker,
+                text=text[content_start:content_end],
+                start=turn_start,
+                end=turn_end,
+            )
+
+    if saw_cue:
+        logger.info("Speaker-cue diarization complete: %d speaker turns detected", len(turns))
+        return turns
+    return []
 
 
 def assign_speakers_to_segments(

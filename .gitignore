@@ -12,6 +12,7 @@ __pycache__/
 samples/
 venv/
 uploads/
+models/
 *.wav
 *.mp3
 *.m4a

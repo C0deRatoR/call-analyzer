@@ -137,7 +137,16 @@ def _wire_common_mocks(monkeypatch: pytest.MonkeyPatch, call: Call):
             }
         return turns
 
+    def fake_classify_dialogue_acts(turns: list[dict]) -> SimpleNamespace:
+        labels = [("question", 0.93), ("statement", 0.84), ("suggestion", 0.76)]
+        for index, turn in enumerate(turns):
+            label, confidence = labels[index % len(labels)]
+            turn["dialogue_act"] = label
+            turn["dialogue_act_confidence"] = confidence
+        return SimpleNamespace(turns=turns, warning=None)
+
     monkeypatch.setattr(worker_pipeline, "diarize_with_pyannote", fake_diarize_with_pyannote)
+    monkeypatch.setattr(worker_pipeline, "classify_dialogue_acts", fake_classify_dialogue_acts)
     monkeypatch.setattr(worker_pipeline, "detect_emotions_per_turn", fake_detect_emotions)
     monkeypatch.setattr(
         worker_pipeline,
@@ -189,11 +198,15 @@ def test_pipeline_persists_transcription_analytics_summary_and_sentiment(
     assert call.turns[0].end_seconds == pytest.approx(1.5)
     assert call.turns[0].emotion == "joy"
     assert call.turns[0].emotion_confidence == pytest.approx(0.9)
+    assert call.turns[0].dialogue_act == "question"
+    assert call.turns[0].dialogue_act_confidence == pytest.approx(0.93)
     assert call.turns[1].index == 1
     assert call.turns[1].speaker == "Student"
     assert call.turns[1].text == "from the actual audio."
     assert call.turns[1].emotion == "neutral"
     assert call.turns[1].emotion_confidence == pytest.approx(0.8)
+    assert call.turns[1].dialogue_act == "statement"
+    assert call.turns[1].dialogue_act_confidence == pytest.approx(0.84)
     assert call.dominant_emotion == "joy"
     assert call.emotion_distribution_json == {"joy": 0.5, "neutral": 0.5}
     assert call.keywords_json == [
@@ -206,7 +219,7 @@ def test_pipeline_persists_transcription_analytics_summary_and_sentiment(
     assert call.analytics.talk_time_ratio == pytest.approx(0.4762)
     assert call.analytics.primary_word_count == 1
     assert call.analytics.secondary_word_count == 4
-    assert call.analytics.primary_question_count == 0
+    assert call.analytics.primary_question_count == 1
     assert call.analytics.primary_statement_count == 0
     assert call.analytics.primary_acknowledgment_count == 0
     assert call.analytics.primary_suggestion_count == 0
@@ -341,6 +354,97 @@ def test_pipeline_completes_with_warning_when_emotion_analytics_fails(
         {"keyword": "conversation", "score": 0.72},
     ]
     assert call.analytics is not None
+
+
+def test_pipeline_completes_with_warning_when_dialogue_act_classifier_fails(
+    monkeypatch: pytest.MonkeyPatch, call: Call
+):
+    worker_pipeline, _, _ = _wire_common_mocks(monkeypatch, call)
+    monkeypatch.setattr(
+        worker_pipeline,
+        "transcribe_audio_with_segments",
+        lambda path, model_size: {
+            "text": "Dialogue act failures should not fail the call.",
+            "language": "en",
+            "segments": [{"start": 0.0, "end": 2.0, "text": "How are you?"}],
+        },
+    )
+    monkeypatch.setattr(worker_pipeline, "gemini_client", SuccessfulGemini())
+    monkeypatch.setattr(
+        worker_pipeline,
+        "classify_dialogue_acts",
+        lambda turns: SimpleNamespace(turns=turns, warning="dialogue act unavailable"),
+    )
+
+    result = worker_pipeline._run_pipeline(str(call.id))
+
+    assert result["status"] == "completed"
+    assert result["warnings"] == ["dialogue act classification failed"]
+    assert call.status == CallStatus.COMPLETED
+    assert call.current_stage == "complete"
+    assert call.error_message == (
+        "Pipeline completed with warnings: dialogue act classification failed"
+    )
+    assert call.turns[0].dialogue_act is None
+    assert call.turns[0].dialogue_act_confidence is None
+    assert call.analytics is not None
+    assert call.analytics.primary_question_count == 0
+
+
+def test_speaker_analytics_counts_dialogue_acts_only_for_primary_speaker(monkeypatch):
+    from apps.worker.tasks import pipeline as worker_pipeline
+
+    fake_domain = SimpleNamespace(
+        speakers=SimpleNamespace(primary="Counselor", secondary="Student")
+    )
+    monkeypatch.setattr(worker_pipeline, "load_domain", lambda domain_id: fake_domain)
+
+    analytics = worker_pipeline._speaker_analytics(
+        str(uuid4()),
+        "counseling",
+        [
+            {
+                "speaker": "Counselor",
+                "text": "How are you feeling?",
+                "start": 0.0,
+                "end": 1.0,
+                "dialogue_act": "question",
+            },
+            {
+                "speaker": "Counselor",
+                "text": "That makes sense.",
+                "start": 1.0,
+                "end": 2.0,
+                "dialogue_act": "acknowledgment",
+            },
+            {
+                "speaker": "Counselor",
+                "text": "Try writing the first step down.",
+                "start": 2.0,
+                "end": 3.0,
+                "dialogue_act": "suggestion",
+            },
+            {
+                "speaker": "Student",
+                "text": "I have a question.",
+                "start": 3.0,
+                "end": 4.0,
+                "dialogue_act": "question",
+            },
+            {
+                "speaker": "Counselor",
+                "text": "We can review it tomorrow.",
+                "start": 4.0,
+                "end": 5.0,
+                "dialogue_act": "statement",
+            },
+        ],
+    )
+
+    assert analytics.primary_question_count == 1
+    assert analytics.primary_statement_count == 1
+    assert analytics.primary_acknowledgment_count == 1
+    assert analytics.primary_suggestion_count == 1
 
 
 def test_pipeline_falls_back_to_pause_diarization_without_hf_token(

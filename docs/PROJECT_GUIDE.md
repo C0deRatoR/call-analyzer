@@ -4,9 +4,9 @@
 
 ConvIQ is a conversation intelligence backend. A user uploads an audio conversation, ConvIQ auto-selects a domain such as counseling, sales, or customer support, and receives structured analysis for that call. The project is being rebuilt from an older prototype into a production-shaped AI/ML system with async processing, configurable domains, typed outputs, and measurable quality.
 
-Current status: the FastAPI/Celery/Postgres/Redis scaffold is in place, domain YAML loading works, structured LLM schemas exist, Redis-backed SSE progress streaming is wired, and the clean frontend has been manually tested against the current backend contract. The Phase 2 worker now runs Whisper transcription, pyannote.audio diarization when `HF_TOKEN` has access to the required pyannote model gates, persisted turn rows, backend-owned emotion/keyword/per-speaker analytics, and Gemini 2.5 Flash summary/sentiment enrichment. Dialogue-act classification, RAG, evals, and observability are future phases.
+Current status: the FastAPI/Celery/Postgres/Redis scaffold is in place, domain YAML loading works, structured LLM schemas exist, Redis-backed SSE progress streaming is wired, and the clean frontend has been manually tested against the current backend contract. Phase 2 is complete: the worker runs Whisper transcription, pyannote.audio diarization when `HF_TOKEN` has access to the required pyannote model gates, persisted turn rows, backend-owned emotion/keyword/per-speaker analytics, and Gemini 2.5 Flash summary/sentiment enrichment. Phase 3 v1 is implemented in code: the analytics stage labels turns with the dialogue-act taxonomy `question`, `statement`, `acknowledgment`, and `suggestion`, persists `turns.dialogue_act` / `dialogue_act_confidence`, and derives primary-speaker dialogue-act counts. RAG, evals, and observability remain future phases.
 
-Latest verified baseline: manual frontend testing has been completed against the FastAPI/SSE contract. A local backend smoke run on May 31, 2026 with Postgres, Redis, FastAPI, Celery, Whisper `tiny`, pyannote.audio, Hugging Face emotion classification, KeyBERT, Gemini 2.5 Flash, and `HF_TOKEN` access for `pyannote/speaker-diarization-3.1`, `pyannote/segmentation-3.0`, and `pyannote/speaker-diarization-community-1` completed successfully through upload -> transcription -> pyannote diarization -> analytics -> summary -> sentiment -> persisted completed call. The verified frontend upload used a trimmed counseling sample and produced 2 persisted turns with emotions, `dominant_emotion=neutral`, direct emotion distribution, 10 persisted keywords, one `analytics` row with talk time and word counts, summary, mixed sentiment, `suggestions_json=null`, and no pipeline warnings. Without model access, local runs intentionally fall back to the pause heuristic and persist turns with a warning.
+Latest verified baseline: manual frontend testing has been completed against the FastAPI/SSE contract. A local backend smoke run on May 31, 2026 with Postgres, Redis, FastAPI, Celery, Whisper, pyannote.audio, Hugging Face emotion classification, KeyBERT, Gemini 2.5 Flash Lite, and `HF_TOKEN` access for `pyannote/speaker-diarization-3.1`, `pyannote/segmentation-3.0`, and `pyannote/speaker-diarization-community-1` completed successfully through upload -> transcription -> diarization -> analytics -> summary -> sentiment -> persisted completed call. The MP3 golden baseline completed three sample calls end to end; that run exposed transcript errors from the previous `tiny` local override, so local config now defaults to Whisper `small`. The fallback diarizer now recognizes common ASR speaker-cue variants such as `Consular speaking` and plural labels such as `Students speaking`; the dialogue-act runtime now falls back to deterministic question/suggestion/statement rules when a model prediction is low-confidence. Without pyannote model access, local runs intentionally fall back to heuristics and persist turns with a warning. Without the local dialogue-act artifact, Phase 3 runtime leaves model-dependent turns unlabeled and completes with a warning; deterministic short acknowledgments can still be labeled by the rule override.
 
 ## How The Current System Works
 
@@ -16,11 +16,12 @@ Latest verified baseline: manual frontend testing has been completed against the
 4. A `Call` row is created in Postgres with status `queued`.
 5. The API enqueues `conviq.run_pipeline` in Celery.
 6. The worker runs fixed stages: `transcribe`, `diarize`, `analytics`, `summarize`, `sentiment`.
-7. When `domain_id=auto`, the worker infers the domain after transcription, persists the selected `domain_id`, and uses that domain for speaker labels and LLM prompts.
-8. Each stage publishes progress to Redis on `pipeline:{call_id}`.
-9. `GET /calls/{id}/stream` relays those Redis messages as SSE.
-10. The worker writes final status/output, diarized turns, backend analytics, or failure details to Postgres.
-11. `GET /calls/{id}` returns persisted call status, results, and turn rows.
+7. The `analytics` stage runs dialogue-act classification, turn emotion detection, keyword extraction, and per-speaker aggregate analytics.
+8. When `domain_id=auto`, the worker infers the domain after transcription, persists the selected `domain_id`, and uses that domain for speaker labels and LLM prompts.
+9. Each stage publishes progress to Redis on `pipeline:{call_id}`.
+10. `GET /calls/{id}/stream` relays those Redis messages as SSE.
+11. The worker writes final status/output, diarized turns, backend analytics, or failure details to Postgres.
+12. `GET /calls/{id}` returns persisted call status, results, turn rows, dialogue-act labels, and analytics counts.
 
 ## Repository Structure
 
@@ -45,7 +46,9 @@ Empty future placeholder directories and the stale static frontend were removed.
 - `apps/worker/tasks/pipeline.py`: current stage-shaped worker pipeline.
 - `apps/api/routers/calls.py`: upload, status, SSE stream, and future export endpoints.
 - `pipeline/diarization.py`: pyannote diarization alignment plus pause-heuristic fallback.
+- `pipeline/dialogue_act.py`: lazy-loaded DistilBERT dialogue-act classifier, DailyDialog label mapping, acknowledgment override, and warning-safe batch API.
 - `pipeline/emotion.py` and `pipeline/keywords.py`: Phase 2 analytics helpers for turn emotions and keyword extraction.
+- `scripts/train_dialogue_act.py` and `scripts/evaluate_dialogue_act.py`: reproducible DailyDialog fine-tuning and metrics scripts.
 - `frontend/app.js`: manual-testing UI wired to `POST /calls`, `GET /calls/{id}/stream`, and `GET /calls/{id}`.
 
 ## Development Commands
@@ -85,6 +88,55 @@ ruff check .
 ruff format .
 mypy apps core pipeline
 ```
+
+Train the Phase 3 dialogue-act classifier locally:
+
+```bash
+python scripts/train_dialogue_act.py \
+  --output-dir models/dialogue-act/distilbert-dailydialog-app-buckets
+```
+
+Run a short CPU smoke pass when validating the script shape:
+
+```bash
+python scripts/train_dialogue_act.py \
+  --output-dir models/dialogue-act/distilbert-dailydialog-app-buckets-smoke \
+  --num-train-epochs 1 \
+  --max-train-samples 32 \
+  --max-eval-samples 32
+```
+
+Evaluate a saved model:
+
+```bash
+python scripts/evaluate_dialogue_act.py \
+  --model-dir models/dialogue-act/distilbert-dailydialog-app-buckets
+```
+
+The default artifact path is ignored by git. Hub publishing is optional:
+
+```bash
+HF_TOKEN=... HF_USERNAME=... python scripts/train_dialogue_act.py --push-to-hub
+```
+
+The scripts request the Hugging Face `daily_dialog` dataset first and fall back
+to the DailyDialog mirror `roskoN/dailydialog` when the installed Hub stack no
+longer accepts the legacy short dataset id. Override with `--dataset-name` if a
+different mirror is needed.
+
+Score a completed manual sample upload against the local golden expectations:
+
+```bash
+PYTHONPATH=. python scripts/score_call_result.py \
+  --call-id <call-id-from-ui> \
+  --base-url http://127.0.0.1:8000
+```
+
+The golden expectations live in `eval/golden_samples.json`. They currently
+check the local sample audios for expected domain, speaker labels, minimum turn
+count, speaker switches, required phrases, known bad phrases, dialogue-act
+coverage, and warning text. This is a lightweight regression score for manual
+testing; it is not a replacement for the Phase 5 formal WER/DER/F1 benchmark.
 
 Run the Docker stack:
 
@@ -129,6 +181,12 @@ PYTHONPATH=. /home/k0de/miniforge3/envs/ai/bin/uvicorn apps.api.main:app --host 
 PYTHONPATH=. /home/k0de/miniforge3/envs/ai/bin/celery -A apps.worker.celery_app:celery_app worker --loglevel=info --concurrency=1
 ```
 
+- Use the lowest-cost Gemini model for local LLM testing:
+
+```bash
+GEMINI_MODEL=gemini-2.5-flash-lite
+```
+
 - Run quality checks through conda:
 
 ```bash
@@ -137,7 +195,7 @@ PYTHONPATH=. /home/k0de/miniforge3/bin/conda run -n ai ruff check .
 PYTHONPATH=. /home/k0de/miniforge3/bin/conda run -n ai mypy apps core pipeline
 ```
 
-Next-session prompt: continue from the latest `dev` branch. Manual frontend testing is done, pyannote-backed validation works after `HF_TOKEN` access was configured, the UI submits `domain_id=auto`, and Phase 2 analytics now persists turn emotions, direct emotion distribution, keywords, and one per-call analytics row. Continue toward dialogue-act labels; keep coaching suggestions empty until Phase 4 RAG can ground them with citations.
+Next-session prompt: continue from the latest `dev` branch. Manual frontend testing is done, pyannote-backed validation works after `HF_TOKEN` access was configured, the UI submits `domain_id=auto`, Phase 2 analytics persists turn emotions, direct emotion distribution, keywords, and one per-call analytics row, and Phase 3 v1 persists dialogue-act labels/counts when `DIALOGUE_ACT_MODEL` points at a trained local artifact. Keep coaching suggestions empty until Phase 4 RAG can ground them with citations.
 
 ## Coding Guidelines
 
@@ -182,23 +240,27 @@ The final system is intended to be:
 - Domain-aware prompt renderer.
 - `domain_id` form field on `POST /calls`, now optional for clients that want automatic domain selection.
 
-### Phase 2: Real Diarization + Async Pipeline - In Progress
+### Phase 2: Real Diarization + Async Pipeline - Complete
 
-- Replace stub stage bodies with real pipeline implementations. First slice complete and locally verified: Whisper transcription plus Gemini 2.5 Flash summary/sentiment.
-- Add Whisper transcription from uploaded audio. Complete for the first worker slice.
+- Replace stub stage bodies with real pipeline implementations. Complete and locally verified.
+- Add Whisper transcription from uploaded audio. Complete.
 - Build and manually validate the clean frontend against the FastAPI/SSE contract. Complete.
 - Add pyannote diarization using `HF_TOKEN`. Complete and locally verified after Hugging Face access was accepted for `pyannote/speaker-diarization-3.1`, `pyannote/segmentation-3.0`, and `pyannote/speaker-diarization-community-1`; the pause-heuristic fallback remains for missing model access or runtime failures.
 - Persist stage outputs to Postgres. Complete for call-level transcript/summary/sentiment, turn rows, backend-owned emotions, keywords, direct emotion distribution, and per-call analytics rows.
 - Keep Redis progress events and SSE contract stable.
-- Add retry/resume-friendly boundaries around stages.
+- Add retry/resume-friendly warning boundaries around non-critical ML enrichment stages.
 
-### Phase 3: Custom Dialogue-Act Model
+### Phase 3: Custom Dialogue-Act Model - Complete for v1
 
-- Train DistilBERT on DailyDialog dialogue-act labels.
-- Compare against zero-shot LLM baseline.
-- Add model card and reproducible training/eval scripts.
-- Add `pipeline/dialogue_act.py`.
-- Use dialogue-act labels in per-speaker analytics.
+- Add `pipeline/dialogue_act.py` with lazy Hugging Face sequence-classification loading from `DIALOGUE_ACT_MODEL`.
+- Use the app-facing taxonomy `question`, `statement`, `acknowledgment`, and `suggestion`.
+- Map DailyDialog `inform -> statement`, `question -> question`, and `directive` / `commissive -> suggestion`.
+- Handle short low-content acknowledgments with a deterministic override because DailyDialog has no acknowledgment class.
+- Persist `turns.dialogue_act` and `turns.dialogue_act_confidence`.
+- Populate primary-speaker question, statement, acknowledgment, and suggestion counts from labeled turns.
+- Add reproducible training/eval scripts that save to `models/dialogue-act/distilbert-dailydialog-app-buckets` by default.
+- Keep Hugging Face Hub publishing optional through `--push-to-hub` when `HF_TOKEN` and `HF_USERNAME` are set.
+- Leave Gemini zero-shot comparison as a Phase 5 benchmark slot; this phase does not call Gemini for dialogue-act labels.
 
 ### Phase 4: RAG + Citations
 
@@ -211,6 +273,7 @@ The final system is intended to be:
 
 - Add golden audio samples and annotations.
 - Track WER, DER, dialogue-act F1, groundedness, latency, and cost.
+- Compare the trained dialogue-act model against a Gemini zero-shot baseline.
 - Add regression tests or CI jobs for prompt/model/pipeline changes.
 - Generate benchmark artifacts for README.
 

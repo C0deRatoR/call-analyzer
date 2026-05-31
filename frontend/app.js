@@ -1,18 +1,18 @@
 /* =====================================================================
-   Call Analyzer v2 — Warm editorial direction
+   Call Analyzer v3 — Soft modern direction
    ===================================================================== */
 
 const EMOTION_HEX = {
-  joy:      '#7a9456',
-  anger:    '#b8400e',
-  sadness:  '#486581',
-  fear:     '#6b5b95',
-  surprise: '#d49f3f',
-  disgust:  '#8a9655',
-  neutral:  '#9c8a7b',
-  unknown:  '#6f6a64',
+  joy:      '#2e9e6b',
+  anger:    '#e8634a',
+  sadness:  '#4f7cd4',
+  fear:     '#8a6fe0',
+  surprise: '#e0a341',
+  disgust:  '#5aa88f',
+  neutral:  '#9aa0ab',
+  unknown:  '#9aa0ab',
 };
-const EMOTION_RANK = { anger:0, disgust:1, fear:2, sadness:3, neutral:4, unknown:5, surprise:6, joy:7 };
+const EMOTION_RANK = { anger:0, disgust:1, fear:2, sadness:3, neutral:4, unknown:4, surprise:5, joy:6 };
 
 const SENTIMENT_LABEL = {
   very_positive: 'Very Positive',
@@ -39,6 +39,18 @@ const I = {
   arrow: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>',
   sliders: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><circle cx="10" cy="7" r="2.2" fill="var(--card)"/><line x1="4" y1="12" x2="20" y2="12"/><circle cx="16" cy="12" r="2.2" fill="var(--card)"/><line x1="4" y1="17" x2="20" y2="17"/><circle cx="8" cy="17" r="2.2" fill="var(--card)"/></svg>',
   help: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 1.5-2.5 2-2.5 3.5"/><circle cx="12" cy="17" r=".6" fill="currentColor"/></svg>',
+};
+
+/* ------------------------- section nav icons ------------------------- */
+const NAV_ICONS = {
+  overview:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>',
+  transcript:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="13" y2="17"/></svg>',
+  summary:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>',
+  sentiment:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2.5-7 4.5 14 2.5-7H21"/></svg>',
+  emotions:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 14.5s1.4 1.8 3.5 1.8 3.5-1.8 3.5-1.8"/><line x1="9" y1="9.5" x2="9.01" y2="9.5"/><line x1="15" y1="9.5" x2="15.01" y2="9.5"/></svg>',
+  keywords:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg>',
+  suggestions: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.3h6c0-1 .4-1.8 1-2.3A7 7 0 0 0 12 2z"/></svg>',
+  charts:      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="20" x2="20" y2="20"/><rect x="6" y="10" width="3" height="7" rx="1"/><rect x="11" y="6" width="3" height="11" rx="1"/><rect x="16" y="13" width="3" height="4" rx="1"/></svg>',
 };
 
 /* ----------------------------- state ----------------------------- */
@@ -120,6 +132,42 @@ function renderTopbar() {
 /* ============================================================
    Sidebar
    ============================================================ */
+function renderNav(sections, isResults) {
+  const mode = TWEAKS.nav || 'grouped';
+  const item = (s, i) => {
+    const active = App.section === s.id ? 'active' : '';
+    const disabled = isResults ? '' : 'disabled';
+    const lead = mode === 'numbered'
+      ? `<span class="nav-num">${String(i + 1).padStart(2, '0')}</span>`
+      : `<span class="nav-ico">${NAV_ICONS[s.icon]}</span>`;
+    const count = s.count != null ? `<span class="nav-count">${s.count}</span>` : '<span></span>';
+    return `<button class="nav-item ${active}" data-section="${s.id}" ${disabled}>${lead}<span class="nav-lab">${s.label}</span>${count}</button>`;
+  };
+
+  if (mode === 'grouped') {
+    const groups = [];
+    sections.forEach(s => {
+      let group = groups.find(x => x.name === s.group);
+      if (!group) {
+        group = { name: s.group, items: [] };
+        groups.push(group);
+      }
+      group.items.push(s);
+    });
+    return groups.map(group => `
+      <div class="nav-group">
+        <div class="nav-group-label">${group.name}</div>
+        <div class="nav">${group.items.map(s => item(s, sections.indexOf(s))).join('')}</div>
+      </div>
+    `).join('');
+  }
+
+  return `
+    <div class="sb-label">Sections</div>
+    <div class="nav">${sections.map((s, i) => item(s, i)).join('')}</div>
+  `;
+}
+
 function renderSidebar() {
   const sb = document.getElementById('sidebar');
   const isResults = App.state === 'results';
@@ -128,14 +176,14 @@ function renderSidebar() {
   const sugCount = isResults ? parseSuggestions(App.data.suggestion).length : 0;
 
   const sections = [
-    { id: 'overview',    label: 'Overview' },
-    { id: 'transcript',  label: 'Transcript',   count: turnCount },
-    { id: 'summary',     label: 'Summary' },
-    { id: 'sentiment',   label: 'Sentiment' },
-    { id: 'emotions',    label: 'Emotions' },
-    { id: 'keywords',    label: 'Keywords',     count: kwCount },
-    { id: 'suggestions', label: 'Suggestions',  count: sugCount },
-    { id: 'charts',      label: 'Charts' },
+    { id: 'overview',    label: 'Overview',    icon: 'overview',    group: 'Read' },
+    { id: 'transcript',  label: 'Transcript',  icon: 'transcript',  group: 'Read', count: turnCount },
+    { id: 'summary',     label: 'Summary',     icon: 'summary',     group: 'Read' },
+    { id: 'sentiment',   label: 'Sentiment',   icon: 'sentiment',   group: 'Analyze' },
+    { id: 'emotions',    label: 'Emotions',    icon: 'emotions',    group: 'Analyze' },
+    { id: 'keywords',    label: 'Keywords',    icon: 'keywords',    group: 'Analyze', count: kwCount },
+    { id: 'suggestions', label: 'Suggestions', icon: 'suggestions', group: 'Act on it', count: sugCount },
+    { id: 'charts',      label: 'Charts',      icon: 'charts',      group: 'Act on it' },
   ];
 
   let fileBlock = '';
@@ -158,23 +206,12 @@ function renderSidebar() {
     ${fileBlock || `
       <div class="sb-section">
         <div class="sb-label">Session</div>
-        <div style="padding:4px 0;font-family:var(--serif);font-size:15px;color:var(--ink-3);font-style:italic">No recording yet</div>
+        <div style="padding:4px 8px;font-family:var(--sans);font-size:13.5px;color:var(--ink-3)">No recording yet</div>
       </div>
     `}
 
     <div class="sb-section" style="padding-top: 6px;">
-      <div class="sb-label">Sections</div>
-      <div class="nav">
-        ${sections.map((s, i) => `
-          <button class="nav-item ${App.section === s.id ? 'active' : ''}"
-                  data-section="${s.id}"
-                  ${isResults ? '' : 'disabled'}>
-            <span class="nav-num">${String(i+1).padStart(2,'0')}</span>
-            <span>${s.label}</span>
-            <span class="nav-count">${s.count ?? ''}</span>
-          </button>
-        `).join('')}
-      </div>
+      ${renderNav(sections, isResults)}
     </div>
 
     <div class="sb-spacer"></div>
@@ -237,7 +274,7 @@ function renderUpload(panel) {
       <div class="upload-hero">
         <div class="hero-eyebrow">
           <span>New analysis</span>
-          <span class="meta">·  May 19, 2026</span>
+          <span class="meta">·  Live pipeline</span>
         </div>
         <h1 class="hero-title">
           Hear what the<br>
@@ -289,7 +326,7 @@ function renderUpload(panel) {
 
         <div class="formats">
           <span class="label">Accepts</span>
-          <span class="formats-list">MP3<span>·</span>WAV<span>·</span>M4A<span>·</span>FLAC<span>·</span>OGG<span>·</span>AAC</span>
+          <span class="formats-list">MP3<span>·</span>M4A<span>·</span>FLAC<span>·</span>OGG<span>·</span>AAC</span>
         </div>
       </div>
 
@@ -659,6 +696,8 @@ function normalizeTurn(turn, index) {
       primary_emotion: emotion,
       confidence: Number(turn.emotion_confidence ?? turn.emotion?.confidence ?? 0),
     },
+    dialogue_act: turn.dialogue_act || null,
+    dialogue_act_confidence: Number(turn.dialogue_act_confidence ?? 0),
   };
 }
 
@@ -698,6 +737,13 @@ function sentimentDisplay(label) {
   return SENTIMENT_LABEL[label] || String(label || 'neutral')
     .replace(/_/g, ' ')
     .replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function speakerClass(speaker) {
+  return String(speaker || 'speaker')
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'speaker';
 }
 
 function sentimentScoresFromCompound(compound) {
@@ -930,7 +976,7 @@ function renderTranscript(panel) {
 
       <div class="transcript">
         ${turns.map((t, i) => {
-          const cls = t.speaker.toLowerCase();
+          const cls = speakerClass(t.speaker);
           const ec = EMOTION_HEX[t.emotion.primary_emotion];
           return `
             <div class="turn ${cls}">
@@ -946,6 +992,12 @@ function renderTranscript(panel) {
                     ${t.emotion.primary_emotion}
                     <span class="c">${Math.round(t.emotion.confidence*100)}%</span>
                   </span>
+                  ${t.dialogue_act ? `
+                    <span class="turn-act">
+                      ${escapeHtml(t.dialogue_act)}
+                      ${t.dialogue_act_confidence ? `<span class="c">${Math.round(t.dialogue_act_confidence*100)}%</span>` : ''}
+                    </span>
+                  ` : ''}
                 </div>
                 <div class="turn-text">${escapeHtml(t.text)}</div>
               </div>
@@ -961,6 +1013,8 @@ function renderTranscript(panel) {
 function renderSummary(panel) {
   const d = App.data;
   const s = d.summary;
+  const speakers = [...new Set(d.diarized_turns.map(t => t.speaker).filter(Boolean))];
+  const speakerLabel = speakers.length ? speakers.join(' · ') : 'detected speakers';
 
   panel.innerHTML = panelHead(
     'Section 03 · Summary',
@@ -994,8 +1048,8 @@ function renderSummary(panel) {
         </div>
         <div class="kpi">
           <div class="kpi-label">Speakers</div>
-          <div class="kpi-value">2</div>
-          <div class="kpi-sub">counselor · student</div>
+          <div class="kpi-value">${speakers.length || 1}</div>
+          <div class="kpi-sub">${escapeHtml(speakerLabel)}</div>
         </div>
       </div>
 
@@ -1158,12 +1212,13 @@ function renderEmotions(panel) {
           </div>
           ${turns.map((t, i) => {
             const ec = EMOTION_HEX[t.emotion.primary_emotion];
+            const sc = speakerClass(t.speaker);
             return `
               <div style="display:grid;grid-template-columns:60px 90px 1fr 120px;gap:0;padding:14px 22px;font-size:13px;border-bottom:1px solid var(--line-1);align-items:center">
                 <span style="font-family:var(--mono);color:var(--ink-3);font-size:11px;font-feature-settings:'tnum'">${String(i+1).padStart(2,'0')}</span>
                 <span style="font-family:var(--mono);color:var(--ink-2);font-size:11px;font-feature-settings:'tnum'">${formatTime(t.start)}</span>
                 <span style="display:flex;align-items:center;gap:10px">
-                  <span style="font-family:var(--serif);font-size:16px;color:${t.speaker === 'Student' ? 'var(--accent)' : 'var(--ink-0)'};${t.speaker === 'Student' ? 'font-style:italic' : ''}">${t.speaker}</span>
+                  <span style="font-family:var(--sans);font-weight:600;font-size:14px;color:${sc === 'customer' || sc === 'student' ? 'var(--accent)' : 'var(--ink-0)'}">${t.speaker}</span>
                   <span style="color:var(--ink-4)">·</span>
                   <span style="display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;color:${ec};text-transform:lowercase">
                     <span style="width:7px;height:7px;border-radius:50%;background:${ec}"></span>
@@ -1300,14 +1355,15 @@ function renderCharts(panel) {
     </div>
   `;
   requestAnimationFrame(() => buildCharts(d));
+  setTimeout(() => { if (!Object.keys(App.charts).length) buildCharts(d); }, 80);
 }
 
 function buildCharts(d) {
   Object.values(App.charts).forEach(c => c?.destroy?.());
   App.charts = {};
 
-  const ink1 = '#3d3128', ink3 = '#9c8a7b';
-  const grid = 'rgba(60, 40, 20, 0.08)';
+  const ink1 = '#2c313b', ink3 = '#8b94a4';
+  const grid = 'rgba(30, 40, 70, 0.07)';
   Chart.defaults.font.family = "'Geist', 'Inter', system-ui, sans-serif";
   Chart.defaults.font.size = 11;
   Chart.defaults.color = ink3;
@@ -1319,7 +1375,7 @@ function buildCharts(d) {
       labels: ['Positive', 'Neutral', 'Negative'],
       datasets: [{
         data: [ss.positive, ss.neutral, ss.negative].map(v => +(v*100).toFixed(1)),
-        backgroundColor: ['#7a9456', '#9c8a7b', '#b8400e'],
+        backgroundColor: ['#2e9e6b', '#9aa0ab', '#e8634a'],
         borderColor: '#ffffff', borderWidth: 3,
       }]
     },
@@ -1345,7 +1401,7 @@ function buildCharts(d) {
       responsive: true, maintainAspectRatio: false,
       plugins: { legend: { display: false } },
       scales: {
-        x: { grid: { display: false }, ticks: { color: ink3 }, border: { color: 'rgba(60, 40, 20, 0.15)' } },
+        x: { grid: { display: false }, ticks: { color: ink3 }, border: { color: 'rgba(30, 40, 70, 0.12)' } },
         y: { grid: { color: grid }, ticks: { color: ink3, callback: v => v + '%' }, border: { display: false } },
       }
     }
@@ -1358,14 +1414,14 @@ function buildCharts(d) {
       datasets: [{
         data: tl.map(t => ({
           x: t.start,
-          y: EMOTION_RANK[t.emotion.primary_emotion],
+          y: EMOTION_RANK[t.emotion.primary_emotion] ?? EMOTION_RANK.unknown,
           _speaker: t.speaker, _emotion: t.emotion.primary_emotion, _conf: t.emotion.confidence,
         })),
         pointBackgroundColor: tl.map(t => EMOTION_HEX[t.emotion.primary_emotion]),
         pointBorderColor: '#ffffff', pointBorderWidth: 2,
         pointRadius: tl.map(t => 6 + t.emotion.confidence * 4),
         showLine: true,
-        borderColor: 'rgba(60, 40, 20, 0.12)', borderWidth: 1,
+        borderColor: 'rgba(30, 40, 70, 0.12)', borderWidth: 1,
       }]
     },
     options: {
@@ -1373,8 +1429,8 @@ function buildCharts(d) {
       plugins: {
         legend: { display: false },
         tooltip: {
-          backgroundColor: '#ffffff', titleColor: '#1a1410', bodyColor: '#3d3128',
-          borderColor: '#d4c4a8', borderWidth: 1, padding: 10,
+          backgroundColor: '#ffffff', titleColor: '#14171f', bodyColor: '#2c313b',
+          borderColor: '#e1e5ed', borderWidth: 1, padding: 10,
           callbacks: {
             title: items => `${formatTime(items[0].raw.x)} · ${items[0].raw._speaker}`,
             label: item => `${item.raw._emotion} · ${Math.round(item.raw._conf*100)}%`,
@@ -1400,7 +1456,7 @@ function buildCharts(d) {
       labels: ks.map(k => k.keyword),
       datasets: [{
         data: ks.map(k => +(k.score*100).toFixed(1)),
-        backgroundColor: '#b8400e', borderRadius: 4, barThickness: 16,
+        backgroundColor: '#5b5bd6', borderRadius: 4, barThickness: 16,
       }]
     },
     options: {
@@ -1408,7 +1464,7 @@ function buildCharts(d) {
       plugins: { legend: { display: false } },
       scales: {
         x: { grid: { color: grid }, ticks: { color: ink3, callback: v => v + '%' }, border: { display: false } },
-        y: { grid: { display: false }, ticks: { color: ink1, font: { family: 'Instrument Serif', size: 14 } }, border: { display: false } },
+        y: { grid: { display: false }, ticks: { color: ink1, font: { family: 'Geist', size: 13, weight: '500' } }, border: { display: false } },
       }
     }
   });
@@ -1435,13 +1491,14 @@ function bindKeyboard() {
    Tweaks panel
    ============================================================ */
 const ACCENT_OPTIONS = [
-  { name: 'terracotta', hex: '#b8400e' },
-  { name: 'ink',        hex: '#1d3548' },
-  { name: 'moss',       hex: '#3a5a40' },
-  { name: 'mustard',    hex: '#a8761e' },
-  { name: 'plum',       hex: '#6b3949' },
+  { name: 'indigo',  hex: '#5b5bd6' },
+  { name: 'blue',    hex: '#2f6fed' },
+  { name: 'emerald', hex: '#1f9d6b' },
+  { name: 'violet',  hex: '#8a5cf0' },
+  { name: 'rose',    hex: '#e25563' },
+  { name: 'slate',   hex: '#475569' },
 ];
-const TWEAKS = { accent: 'terracotta', density: 'comfortable', emo: 'editorial' };
+const TWEAKS = { accent: 'indigo', density: 'comfortable', emo: 'fresh', nav: 'grouped' };
 
 function bindTweaks() {
   document.getElementById('tweaks-close').onclick = () =>
@@ -1471,9 +1528,18 @@ function renderTweaksBody() {
     </div>
 
     <div class="tweak-group">
+      <div class="tweak-label">Sidebar nav</div>
+      <div class="seg" id="tw-nav">
+        ${['grouped','icons','numbered'].map(n => `
+          <button data-nav="${n}" class="${TWEAKS.nav === n ? 'active' : ''}">${n}</button>
+        `).join('')}
+      </div>
+    </div>
+
+    <div class="tweak-group">
       <div class="tweak-label">Emotion palette</div>
       <div class="seg" id="tw-emo">
-        ${['editorial','muted','vivid'].map(p => `
+        ${['fresh','muted','vivid'].map(p => `
           <button data-emo="${p}" class="${TWEAKS.emo === p ? 'active' : ''}">${p}</button>
         `).join('')}
       </div>
@@ -1504,6 +1570,11 @@ function renderTweaksBody() {
     document.body.dataset.density = b.dataset.density;
     renderTweaksBody();
   });
+  body.querySelectorAll('[data-nav]').forEach(b => b.onclick = () => {
+    TWEAKS.nav = b.dataset.nav;
+    renderSidebar();
+    renderTweaksBody();
+  });
   body.querySelectorAll('[data-emo]').forEach(b => b.onclick = () => {
     TWEAKS.emo = b.dataset.emo;
     applyEmoPalette(b.dataset.emo);
@@ -1514,11 +1585,11 @@ function renderTweaksBody() {
 
 function applyEmoPalette(p) {
   const sets = {
-    editorial: { joy:'#7a9456', anger:'#b8400e', sadness:'#486581', fear:'#6b5b95', surprise:'#d49f3f', disgust:'#8a9655', neutral:'#9c8a7b' },
-    muted:     { joy:'#a8b59a', anger:'#c08a7a', sadness:'#8a9cb4', fear:'#9d92b5', surprise:'#c4b08a', disgust:'#a8b08a', neutral:'#b0a294' },
-    vivid:     { joy:'#22c55e', anger:'#dc2626', sadness:'#2563eb', fear:'#9333ea', surprise:'#f59e0b', disgust:'#65a30d', neutral:'#737373' },
+    fresh:  { joy:'#2e9e6b', anger:'#e8634a', sadness:'#4f7cd4', fear:'#8a6fe0', surprise:'#e0a341', disgust:'#5aa88f', neutral:'#9aa0ab', unknown:'#9aa0ab' },
+    muted:  { joy:'#84a98c', anger:'#cf8b7d', sadness:'#8aa0c4', fear:'#a399c9', surprise:'#cdb083', disgust:'#9bb6a6', neutral:'#aab0bb', unknown:'#aab0bb' },
+    vivid:  { joy:'#22c55e', anger:'#ef4444', sadness:'#3b82f6', fear:'#a855f7', surprise:'#f59e0b', disgust:'#14b8a6', neutral:'#94a3b8', unknown:'#94a3b8' },
   };
-  const s = sets[p] || sets.editorial;
+  const s = sets[p] || sets.fresh;
   Object.entries(s).forEach(([k, v]) => { EMOTION_HEX[k] = v; });
 }
 

@@ -1,13 +1,13 @@
 """Stage-by-stage analysis pipeline.
 
-The first Phase 2 slice replaces the deterministic stub with real Whisper
-transcription plus Gemini summary/sentiment enrichment:
+The real worker path runs Whisper transcription, diarization, analytics, and
+Gemini summary/sentiment enrichment:
 
     transcribe -> diarize -> analytics -> summarize -> sentiment
 
-Dialogue-act classification and RAG remain future slices. Celery tasks use the
-sync SQLAlchemy session (`SyncSessionLocal`) because worker processes do not
-share FastAPI's async event loop.
+RAG remains a future slice. Celery tasks use the sync SQLAlchemy session
+(`SyncSessionLocal`) because worker processes do not share FastAPI's async
+event loop.
 """
 
 import json
@@ -24,7 +24,12 @@ from core.db import Analytics, Call, CallStatus, SyncSessionLocal, Turn
 from core.domains.auto import AUTO_DOMAIN_ID, infer_domain_id
 from core.domains.loader import load_domain
 from core.pipeline import PIPELINE_STAGES, ProgressEvent, pipeline_channel
-from pipeline.diarization import diarize_from_segments, diarize_with_pyannote
+from pipeline.dialogue_act import classify_dialogue_acts
+from pipeline.diarization import (
+    diarize_from_explicit_speaker_cues,
+    diarize_from_segments,
+    diarize_with_pyannote,
+)
 from pipeline.emotion import detect_emotions_per_turn, get_emotion_summary
 from pipeline.keywords import extract_keywords
 from pipeline.llm import gemini_client
@@ -32,6 +37,7 @@ from pipeline.transcription import transcribe_audio_with_segments
 
 logger = logging.getLogger(__name__)
 _redis = redis.from_url(settings.redis_url, decode_responses=True)
+DIALOGUE_ACT_WARNING = "dialogue act classification failed"
 
 
 def _publish(
@@ -122,6 +128,15 @@ def _turn_emotion(turn: dict[str, Any]) -> tuple[str | None, float | None]:
     return None, None
 
 
+def _turn_dialogue_act(turn: dict[str, Any]) -> tuple[str | None, float | None]:
+    dialogue_act = turn.get("dialogue_act")
+    if not dialogue_act:
+        return None, None
+
+    confidence = turn.get("dialogue_act_confidence")
+    return str(dialogue_act), _float_value(confidence) if confidence is not None else None
+
+
 def _word_count(text: Any) -> int:
     return len(str(text or "").split())
 
@@ -156,6 +171,12 @@ def _speaker_analytics(
     secondary_talk_seconds = 0.0
     primary_word_count = 0
     secondary_word_count = 0
+    primary_dialogue_act_counts = {
+        "question": 0,
+        "statement": 0,
+        "acknowledgment": 0,
+        "suggestion": 0,
+    }
 
     for turn in turns:
         speaker = str(turn.get("speaker") or "")
@@ -167,6 +188,9 @@ def _speaker_analytics(
         if speaker == primary_label:
             primary_talk_seconds += duration
             primary_word_count += words
+            dialogue_act = str(turn.get("dialogue_act") or "")
+            if dialogue_act in primary_dialogue_act_counts:
+                primary_dialogue_act_counts[dialogue_act] += 1
         elif speaker == secondary_label:
             secondary_talk_seconds += duration
             secondary_word_count += words
@@ -181,10 +205,10 @@ def _speaker_analytics(
         talk_time_ratio=round(talk_time_ratio, 4),
         primary_word_count=primary_word_count,
         secondary_word_count=secondary_word_count,
-        primary_question_count=0,
-        primary_statement_count=0,
-        primary_acknowledgment_count=0,
-        primary_suggestion_count=0,
+        primary_question_count=primary_dialogue_act_counts["question"],
+        primary_statement_count=primary_dialogue_act_counts["statement"],
+        primary_acknowledgment_count=primary_dialogue_act_counts["acknowledgment"],
+        primary_suggestion_count=primary_dialogue_act_counts["suggestion"],
         quality_scores_json=None,
     )
 
@@ -213,6 +237,7 @@ def _persist_turns(call_id: str, turns: list[dict[str, Any]]) -> None:
             start = _float_value(turn.get("start"))
             end = max(_float_value(turn.get("end"), start), start)
             emotion, emotion_confidence = _turn_emotion(turn)
+            dialogue_act, dialogue_act_confidence = _turn_dialogue_act(turn)
             text = str(turn.get("text", "")).strip()
             if not text:
                 continue
@@ -225,6 +250,8 @@ def _persist_turns(call_id: str, turns: list[dict[str, Any]]) -> None:
                     end_seconds=end,
                     emotion=emotion,
                     emotion_confidence=emotion_confidence,
+                    dialogue_act=dialogue_act,
+                    dialogue_act_confidence=dialogue_act_confidence,
                 )
             )
 
@@ -361,6 +388,18 @@ def _transcript_fallback_turn(transcription: dict, speaker_label: str) -> list[d
     ]
 
 
+def _fallback_diarization_turns(
+    segments: list[dict[str, Any]],
+    speaker_labels: list[str],
+) -> tuple[list[dict[str, Any]], str]:
+    cue_turns = diarize_from_explicit_speaker_cues(segments, speaker_labels=speaker_labels)
+    if cue_turns:
+        return cue_turns, "diarization used speaker cue fallback"
+    return diarize_from_segments(segments, speaker_labels=speaker_labels), (
+        "diarization used pause heuristic"
+    )
+
+
 def _run_diarization(
     call_id: str,
     domain_id: str,
@@ -386,33 +425,33 @@ def _run_diarization(
                 num_speakers=len(speaker_labels),
             )
             if not turns:
-                warnings.append("diarization used pause heuristic")
+                turns, fallback_warning = _fallback_diarization_turns(segments, speaker_labels)
+                warnings.append(fallback_warning)
                 _publish(
                     call_id,
                     "diarize",
-                    "pyannote returned no turns; using pause heuristic",
+                    f"pyannote returned no turns; {fallback_warning}",
                     {"status": "processing", "stub": False},
                 )
-                turns = diarize_from_segments(segments, speaker_labels=speaker_labels)
         except Exception as exc:
             logger.exception("pyannote diarization failed for call %s", call_id)
-            warnings.append("diarization used pause heuristic")
+            turns, fallback_warning = _fallback_diarization_turns(segments, speaker_labels)
+            warnings.append(fallback_warning)
             _publish(
                 call_id,
                 "diarize",
-                f"pyannote failed; using pause heuristic: {exc}",
+                f"pyannote failed; {fallback_warning}: {exc}",
                 {"status": "processing", "stub": False},
             )
-            turns = diarize_from_segments(segments, speaker_labels=speaker_labels)
     else:
-        warnings.append("diarization used pause heuristic")
+        turns, fallback_warning = _fallback_diarization_turns(segments, speaker_labels)
+        warnings.append(fallback_warning)
         _publish(
             call_id,
             "diarize",
-            "HF_TOKEN is not set; using pause heuristic",
+            f"HF_TOKEN is not set; {fallback_warning}",
             {"status": "processing", "stub": False},
         )
-        turns = diarize_from_segments(segments, speaker_labels=speaker_labels)
 
     if not turns:
         warnings.append("diarization produced transcript-only turn")
@@ -439,6 +478,23 @@ def _run_analytics(
     _set_stage(call_id, "analytics")
 
     annotated_turns = [dict(turn) for turn in turns]
+    try:
+        dialogue_result = classify_dialogue_acts(annotated_turns)
+        annotated_turns = dialogue_result.turns
+        dialogue_warning = dialogue_result.warning
+    except Exception as exc:
+        logger.exception("Dialogue-act classification failed for call %s", call_id)
+        dialogue_warning = f"{DIALOGUE_ACT_WARNING}: {exc}"
+
+    if dialogue_warning:
+        warnings.append(DIALOGUE_ACT_WARNING)
+        _publish(
+            call_id,
+            "analytics",
+            dialogue_warning,
+            {"status": "processing", "stub": False},
+        )
+
     try:
         annotated_turns = detect_emotions_per_turn(annotated_turns)
         if _has_emotion_error(annotated_turns):
@@ -499,7 +555,7 @@ def _run_analytics(
 
 
 def _run_pipeline(call_id: str) -> dict:
-    """Run the first real Phase 2 pipeline slice for one call."""
+    """Run the analysis pipeline for one call."""
     logger.info("Pipeline started for call %s", call_id)
     warnings: list[str] = []
     try:

@@ -1,4 +1,4 @@
-// Demo response used only by the design tweak/state-jump controls.
+// Mock /process_audio response — a realistic counseling call payload.
 window.MOCK_RESPONSE = {
   transcript: "Full raw transcript would appear here.",
   language: "en",
