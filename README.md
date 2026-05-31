@@ -37,7 +37,41 @@ It's easy to ship a portfolio project that wraps a few AI APIs. This one is deli
 
 ## Benchmarks
 
-> Tracked as the project lands each phase. Phase 5 will add the eval artifacts that regenerate this table.
+> Tracked as the project lands each phase. The local demo baseline below is a
+> three-sample smoke run for portfolio review; it is not the full Phase 5
+> WER/DER/dialogue-act-F1/LLM-as-judge benchmark suite.
+
+### Local demo baseline, 3 MP3 samples
+
+Generated on May 31, 2026 against the local FastAPI/Celery stack with the three
+sample MP3 files in [`test_audio/`](test_audio/). Reproduce it with:
+
+```bash
+PYTHONPATH=. python scripts/run_demo_benchmark.py \
+  --api http://127.0.0.1:8000 \
+  --out eval/demo_baseline.json
+```
+
+| Sample | Domain | Status | Score | Turns | Speaker switches | Runtime |
+|---|---|---:|---:|---:|---:|---:|
+| `customer_support_refund.mp3` | customer_support | completed | 80.00% | 21 | 17 | 86.4s |
+| `counseling_exam_anxiety.mp3` | counseling | completed | 80.00% | 21 | 17 | 72.3s |
+| `sales_discovery_call.mp3` | sales | completed | 76.25% | 29 | 19 | 74.3s |
+| **Average** |  |  | **78.75%** |  |  | **233.0s total** |
+
+The JSON artifact is tracked at [`eval/demo_baseline.json`](eval/demo_baseline.json).
+This run completed all three calls. The score keeps local warnings visible:
+pyannote fell back to speaker-cue diarization for these MP3s, and the default
+full dialogue-act model artifact was not present, so dialogue-act coverage is
+still a failing smoke check.
+
+### Demo screenshots
+
+![ConvIQ upload screen](assets/demo/upload.png)
+
+![ConvIQ results screen](assets/demo/results.png)
+
+### Planned Phase 5 suite
 
 | Metric | Baseline | ConvIQ | Δ |
 |---|---:|---:|---:|

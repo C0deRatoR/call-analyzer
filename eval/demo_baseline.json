@@ -1,0 +1,247 @@
+{
+  "api": "http://127.0.0.1:8000",
+  "audio_dir": "test_audio",
+  "average_percent": 78.75,
+  "elapsed_seconds": 232.97,
+  "generated_at": "2026-05-31T17:34:42.165595+00:00",
+  "golden_file": "eval/golden_samples.json",
+  "kind": "local demo baseline",
+  "sample_count": 3,
+  "samples": [
+    {
+      "audio_filename": "customer_support_refund.mp3",
+      "call_id": "f0b7ac69-64e8-4048-a756-545551863c3c",
+      "domain_id": "customer_support",
+      "duration_seconds": 319.68,
+      "elapsed_seconds": 86.39,
+      "sample_id": "customer_support_refund",
+      "score": {
+        "audio_filename": "customer_support_refund.mp3",
+        "call_id": "f0b7ac69-64e8-4048-a756-545551863c3c",
+        "checks": [
+          {
+            "detail": "expected customer_support, got customer_support",
+            "name": "domain",
+            "passed": true,
+            "score": 10,
+            "weight": 10
+          },
+          {
+            "detail": "found ['Agent', 'Customer']",
+            "name": "speaker_labels",
+            "passed": true,
+            "score": 15,
+            "weight": 15
+          },
+          {
+            "detail": "expected >= 10, got 21",
+            "name": "turn_count",
+            "passed": true,
+            "score": 15.0,
+            "weight": 15
+          },
+          {
+            "detail": "expected >= 8, got 17",
+            "name": "speaker_switches",
+            "passed": true,
+            "score": 15.0,
+            "weight": 15
+          },
+          {
+            "detail": "found 6/6",
+            "name": "required_phrases",
+            "passed": true,
+            "score": 15.0,
+            "weight": 15
+          },
+          {
+            "detail": "none found",
+            "name": "forbidden_phrases",
+            "passed": true,
+            "score": 10,
+            "weight": 10
+          },
+          {
+            "detail": "expected >= 0.50, got 0.00",
+            "name": "dialogue_act_coverage",
+            "passed": false,
+            "score": 0.0,
+            "weight": 10
+          },
+          {
+            "detail": "Pipeline completed with warnings: diarization used speaker cue fallback; dialogue act classification failed",
+            "name": "warnings",
+            "passed": false,
+            "score": 0,
+            "weight": 10
+          }
+        ],
+        "max_score": 100,
+        "percent": 80.0,
+        "sample_id": "customer_support_refund",
+        "score": 80.0,
+        "speaker_switches": 17,
+        "status": "completed",
+        "turn_count": 21
+      },
+      "status": "completed"
+    },
+    {
+      "audio_filename": "counseling_exam_anxiety.mp3",
+      "call_id": "70f69971-0a03-4461-b03b-6915facfbdd3",
+      "domain_id": "counseling",
+      "duration_seconds": 351.84,
+      "elapsed_seconds": 72.27,
+      "sample_id": "counseling_exam_anxiety",
+      "score": {
+        "audio_filename": "counseling_exam_anxiety.mp3",
+        "call_id": "70f69971-0a03-4461-b03b-6915facfbdd3",
+        "checks": [
+          {
+            "detail": "expected counseling, got counseling",
+            "name": "domain",
+            "passed": true,
+            "score": 10,
+            "weight": 10
+          },
+          {
+            "detail": "found ['Counselor', 'Student']",
+            "name": "speaker_labels",
+            "passed": true,
+            "score": 15,
+            "weight": 15
+          },
+          {
+            "detail": "expected >= 8, got 21",
+            "name": "turn_count",
+            "passed": true,
+            "score": 15.0,
+            "weight": 15
+          },
+          {
+            "detail": "expected >= 6, got 17",
+            "name": "speaker_switches",
+            "passed": true,
+            "score": 15.0,
+            "weight": 15
+          },
+          {
+            "detail": "found 4/4",
+            "name": "required_phrases",
+            "passed": true,
+            "score": 15.0,
+            "weight": 15
+          },
+          {
+            "detail": "none configured",
+            "name": "forbidden_phrases",
+            "passed": true,
+            "score": 10,
+            "weight": 10
+          },
+          {
+            "detail": "expected >= 0.50, got 0.00",
+            "name": "dialogue_act_coverage",
+            "passed": false,
+            "score": 0.0,
+            "weight": 10
+          },
+          {
+            "detail": "Pipeline completed with warnings: diarization used speaker cue fallback; dialogue act classification failed",
+            "name": "warnings",
+            "passed": false,
+            "score": 0,
+            "weight": 10
+          }
+        ],
+        "max_score": 100,
+        "percent": 80.0,
+        "sample_id": "counseling_exam_anxiety",
+        "score": 80.0,
+        "speaker_switches": 17,
+        "status": "completed",
+        "turn_count": 21
+      },
+      "status": "completed"
+    },
+    {
+      "audio_filename": "sales_discovery_call.mp3",
+      "call_id": "ea36f01f-c879-4c52-836a-b7f61f02686f",
+      "domain_id": "sales",
+      "duration_seconds": 377.76,
+      "elapsed_seconds": 74.28,
+      "sample_id": "sales_discovery_call",
+      "score": {
+        "audio_filename": "sales_discovery_call.mp3",
+        "call_id": "ea36f01f-c879-4c52-836a-b7f61f02686f",
+        "checks": [
+          {
+            "detail": "expected sales, got sales",
+            "name": "domain",
+            "passed": true,
+            "score": 10,
+            "weight": 10
+          },
+          {
+            "detail": "found ['Prospect', 'Salesperson']",
+            "name": "speaker_labels",
+            "passed": true,
+            "score": 15,
+            "weight": 15
+          },
+          {
+            "detail": "expected >= 8, got 29",
+            "name": "turn_count",
+            "passed": true,
+            "score": 15.0,
+            "weight": 15
+          },
+          {
+            "detail": "expected >= 6, got 19",
+            "name": "speaker_switches",
+            "passed": true,
+            "score": 15.0,
+            "weight": 15
+          },
+          {
+            "detail": "missing ['budget']",
+            "name": "required_phrases",
+            "passed": false,
+            "score": 11.25,
+            "weight": 15
+          },
+          {
+            "detail": "none configured",
+            "name": "forbidden_phrases",
+            "passed": true,
+            "score": 10,
+            "weight": 10
+          },
+          {
+            "detail": "expected >= 0.50, got 0.00",
+            "name": "dialogue_act_coverage",
+            "passed": false,
+            "score": 0.0,
+            "weight": 10
+          },
+          {
+            "detail": "Pipeline completed with warnings: diarization used speaker cue fallback; dialogue act classification failed",
+            "name": "warnings",
+            "passed": false,
+            "score": 0,
+            "weight": 10
+          }
+        ],
+        "max_score": 100,
+        "percent": 76.25,
+        "sample_id": "sales_discovery_call",
+        "score": 76.25,
+        "speaker_switches": 19,
+        "status": "completed",
+        "turn_count": 29
+      },
+      "status": "completed"
+    }
+  ],
+  "version": 1
+}

@@ -1,5 +1,5 @@
 /* =====================================================================
-   Call Analyzer v3 — Soft modern direction
+   ConvIQ frontend — full-width analysis workbench
    ===================================================================== */
 
 const EMOTION_HEX = {
@@ -37,8 +37,6 @@ const I = {
   plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>',
   close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>',
   arrow: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>',
-  sliders: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><circle cx="10" cy="7" r="2.2" fill="var(--card)"/><line x1="4" y1="12" x2="20" y2="12"/><circle cx="16" cy="12" r="2.2" fill="var(--card)"/><line x1="4" y1="17" x2="20" y2="17"/><circle cx="8" cy="17" r="2.2" fill="var(--card)"/></svg>',
-  help: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 1.5-2.5 2-2.5 3.5"/><circle cx="12" cy="17" r=".6" fill="currentColor"/></svg>',
 };
 
 /* ------------------------- section nav icons ------------------------- */
@@ -71,27 +69,17 @@ const App = {
 window.addEventListener('DOMContentLoaded', () => {
   buildShell();
   renderTopbar();
-  renderSidebar();
+  renderTabbar();
   renderPanel();
   bindKeyboard();
-  bindTweaks();
 });
 
 function buildShell() {
   document.body.innerHTML = `
     <div class="app">
       <div class="topbar" id="topbar"></div>
-      <div class="main">
-        <aside class="sidebar" id="sidebar"></aside>
-        <main class="panel" id="panel"></main>
-      </div>
-    </div>
-    <div class="tweaks" id="tweaks">
-      <div class="tweaks-head">
-        <span class="title">Tweak <em>the look</em></span>
-        <button class="close" id="tweaks-close">${I.close}</button>
-      </div>
-      <div class="tweaks-body" id="tweaks-body"></div>
+      <div class="tabbar" id="tabbar"></div>
+      <main class="panel" id="panel"></main>
     </div>
     <div class="toast" id="toast"></div>
   `;
@@ -104,140 +92,107 @@ function renderTopbar() {
   const tb = document.getElementById('topbar');
   const stateText = { upload: 'New session', processing: 'Listening', results: 'Analyzed' }[App.state];
   const stateCls  = { upload: 'idle', processing: 'busy', results: 'ready' }[App.state];
-
-  const crumbs = (() => {
-    if (App.state === 'upload') return '<span>Sessions</span><span class="sep">/</span><span class="current">New</span>';
-    if (App.state === 'processing') return `<span>Sessions</span><span class="sep">/</span><span>${escapeHtml(App.file?.name || '')}</span><span class="sep">/</span><span class="current">Processing</span>`;
-    return `<span>Sessions</span><span class="sep">/</span><span>${escapeHtml(App.file?.name || 'mock-call.mp3')}</span><span class="sep">/</span><span class="current">Analysis</span>`;
-  })();
+  const fileName = App.file?.name || App.data?.audio_filename || 'No recording';
+  const fileSize = App.file?.size ? formatSize(App.file.size) : '';
+  const fileType = (App.file?.type && App.file.type.split('/')[1]?.toUpperCase()) || 'AUDIO';
+  const duration = App.state === 'results' ? formatDuration(getDuration(App.data)) : '';
+  const domain = App.state === 'results' ? String(App.data?.domain_id || '').replace(/_/g, ' ') : '';
+  const hasRecording = App.file || App.data;
+  const metaItems = [
+    hasRecording ? fileType : 'Upload ready',
+    fileSize,
+    duration,
+    domain,
+  ].filter(Boolean);
 
   tb.innerHTML = `
     <div class="brand">
       <span class="brand-glyph"></span>
-      <span class="brand-name">Call <span class="ital">Analyzer</span></span>
-      <span class="brand-version">v2.1.0</span>
+      <span class="brand-name">Conv<span class="ital">IQ</span></span>
+      <span class="brand-version">local</span>
     </div>
-    <div class="crumbs">${crumbs}</div>
+    <div class="topbar-file">
+      <div class="topbar-file-name" title="${escapeHtml(fileName)}">${escapeHtml(fileName)}</div>
+      <div class="topbar-file-meta">${metaItems.map(item => `<span>${escapeHtml(item)}</span>`).join('<span class="sep">·</span>')}</div>
+    </div>
     <div class="topbar-spacer"></div>
     <span class="status-pill ${stateCls}"><span class="dot"></span>${stateText}</span>
     <div class="topbar-actions">
-      <button class="icon-btn" id="tweaks-toggle" title="Tweaks">${I.sliders}</button>
-      <button class="icon-btn" title="Help">${I.help}</button>
+      <button class="btn btn-ghost" id="btn-new" ${App.state === 'upload' ? 'disabled' : ''}>
+        ${I.plus}<span>New</span>
+      </button>
+      <button class="btn btn-secondary" id="btn-export" ${App.state === 'results' ? '' : 'disabled'}>
+        ${I.download}<span>Export</span>
+      </button>
     </div>
   `;
-  document.getElementById('tweaks-toggle').onclick = () =>
-    document.getElementById('tweaks').classList.toggle('open');
+  document.getElementById('btn-new').onclick = resetToUpload;
+  document.getElementById('btn-export').onclick = exportReport;
 }
 
 /* ============================================================
-   Sidebar
+   Result tabs
    ============================================================ */
-function renderNav(sections, isResults) {
-  const mode = TWEAKS.nav || 'grouped';
-  const item = (s, i) => {
-    const active = App.section === s.id ? 'active' : '';
-    const disabled = isResults ? '' : 'disabled';
-    const lead = mode === 'numbered'
-      ? `<span class="nav-num">${String(i + 1).padStart(2, '0')}</span>`
-      : `<span class="nav-ico">${NAV_ICONS[s.icon]}</span>`;
-    const count = s.count != null ? `<span class="nav-count">${s.count}</span>` : '<span></span>';
-    return `<button class="nav-item ${active}" data-section="${s.id}" ${disabled}>${lead}<span class="nav-lab">${s.label}</span>${count}</button>`;
-  };
-
-  if (mode === 'grouped') {
-    const groups = [];
-    sections.forEach(s => {
-      let group = groups.find(x => x.name === s.group);
-      if (!group) {
-        group = { name: s.group, items: [] };
-        groups.push(group);
-      }
-      group.items.push(s);
-    });
-    return groups.map(group => `
-      <div class="nav-group">
-        <div class="nav-group-label">${group.name}</div>
-        <div class="nav">${group.items.map(s => item(s, sections.indexOf(s))).join('')}</div>
-      </div>
-    `).join('');
-  }
-
-  return `
-    <div class="sb-label">Sections</div>
-    <div class="nav">${sections.map((s, i) => item(s, i)).join('')}</div>
-  `;
-}
-
-function renderSidebar() {
-  const sb = document.getElementById('sidebar');
+function resultSections() {
   const isResults = App.state === 'results';
   const turnCount = isResults ? App.data.diarized_turns.length : 0;
   const kwCount = isResults ? App.data.keywords.keywords.length : 0;
   const sugCount = isResults ? parseSuggestions(App.data.suggestion).length : 0;
-
-  const sections = [
+  return [
     { id: 'overview',    label: 'Overview',    icon: 'overview',    group: 'Read' },
     { id: 'transcript',  label: 'Transcript',  icon: 'transcript',  group: 'Read', count: turnCount },
     { id: 'summary',     label: 'Summary',     icon: 'summary',     group: 'Read' },
     { id: 'sentiment',   label: 'Sentiment',   icon: 'sentiment',   group: 'Analyze' },
     { id: 'emotions',    label: 'Emotions',    icon: 'emotions',    group: 'Analyze' },
     { id: 'keywords',    label: 'Keywords',    icon: 'keywords',    group: 'Analyze', count: kwCount },
-    { id: 'suggestions', label: 'Suggestions', icon: 'suggestions', group: 'Act on it', count: sugCount },
-    { id: 'charts',      label: 'Charts',      icon: 'charts',      group: 'Act on it' },
+    { id: 'suggestions', label: 'Suggestions', icon: 'suggestions', group: 'Act', count: sugCount },
+    { id: 'charts',      label: 'Charts',      icon: 'charts',      group: 'Act' },
   ];
+}
 
-  let fileBlock = '';
-  if (App.file) {
-    const dur = isResults ? formatDuration(getDuration(App.data)) : null;
-    fileBlock = `
-      <div class="file-card">
-        <div class="filename" title="${escapeHtml(App.file.name)}">${escapeHtml(App.file.name)}</div>
-        <div class="file-meta">
-          <span><b>${formatSize(App.file.size)}</b></span>
-          <span class="sep">·</span>
-          <span>${(App.file.type && App.file.type.split('/')[1]?.toUpperCase()) || 'AUDIO'}</span>
-          ${dur ? `<span class="sep">·</span><span><b>${dur}</b></span>` : ''}
-        </div>
-      </div>
-    `;
+function renderTabbar() {
+  const tabbar = document.getElementById('tabbar');
+  if (!tabbar) return;
+  if (App.state !== 'results') {
+    tabbar.classList.remove('visible');
+    tabbar.innerHTML = '';
+    return;
   }
 
-  sb.innerHTML = `
-    ${fileBlock || `
-      <div class="sb-section">
-        <div class="sb-label">Session</div>
-        <div style="padding:4px 8px;font-family:var(--sans);font-size:13.5px;color:var(--ink-3)">No recording yet</div>
+  const groups = [];
+  resultSections().forEach(section => {
+    let group = groups.find(item => item.name === section.group);
+    if (!group) {
+      group = { name: section.group, items: [] };
+      groups.push(group);
+    }
+    group.items.push(section);
+  });
+
+  tabbar.classList.add('visible');
+  tabbar.innerHTML = groups.map(group => `
+    <div class="tab-group">
+      <span class="tab-group-label">${group.name}</span>
+      <div class="tab-group-items">
+        ${group.items.map(section => `
+          <button class="tab-item ${App.section === section.id ? 'active' : ''}" data-section="${section.id}">
+            <span class="tab-ico">${NAV_ICONS[section.icon]}</span>
+            <span class="tab-label">${section.label}</span>
+            ${section.count != null ? `<span class="tab-count">${section.count}</span>` : ''}
+          </button>
+        `).join('')}
       </div>
-    `}
-
-    <div class="sb-section" style="padding-top: 6px;">
-      ${renderNav(sections, isResults)}
     </div>
+  `).join('');
 
-    <div class="sb-spacer"></div>
-
-    <div class="sb-footer">
-      <button class="btn btn-ghost btn-block" id="btn-new" ${App.state === 'upload' ? 'disabled' : ''}>
-        ${I.plus}<span>New session</span>
-      </button>
-      <button class="btn btn-secondary btn-block" id="btn-export" ${isResults ? '' : 'disabled'}>
-        ${I.download}<span>Export report</span>
-      </button>
-    </div>
-  `;
-
-  sb.querySelectorAll('[data-section]').forEach(el => {
+  tabbar.querySelectorAll('[data-section]').forEach(el => {
     el.onclick = () => {
       if (App.state !== 'results') return;
       App.section = el.dataset.section;
-      renderSidebar();
+      renderTabbar();
       renderPanel();
     };
   });
-  const newBtn = document.getElementById('btn-new');
-  if (newBtn) newBtn.onclick = resetToUpload;
-  const expBtn = document.getElementById('btn-export');
-  if (expBtn) expBtn.onclick = mockExport;
 }
 
 /* ============================================================
@@ -413,13 +368,11 @@ function renderProcessing(panel) {
   `;
 }
 
-async function startProcessing(options = {}) {
+async function startProcessing() {
   App.state = 'processing';
   App.callId = null;
   clearRuntimeWatchers();
-  renderTopbar(); renderSidebar(); renderPanel();
-
-  if (options.demo) return simulateProcessing();
+  renderTopbar(); renderTabbar(); renderPanel();
 
   try {
     if (!App.file) throw new Error('Choose an audio file first.');
@@ -438,33 +391,6 @@ async function startProcessing(options = {}) {
   }
 }
 
-function simulateProcessing() {
-  const stepLabels = ['Uploading audio', 'Transcribing speech', 'Finding speaker turns', 'Extracting analytics', 'Analyzing sentiment', 'Drafting report'];
-  const stepDurations = [500, 1400, 1000, 900, 1300, 700];
-  const total = stepDurations.reduce((a, b) => a + b, 0);
-  let elapsed = 0, idx = 0;
-
-  const advance = () => {
-    if (idx >= stepLabels.length) return finishProcessing(enrichMockData(window.MOCK_RESPONSE));
-    setProcessingStage(idx, stepLabels[idx], (elapsed / total) * 100);
-    const t0 = Date.now();
-    const stepStart = elapsed;
-    const int = setInterval(() => {
-      const dt = Date.now() - t0;
-      const p = Math.min(1, dt / stepDurations[idx]);
-      const tp = (stepStart + stepDurations[idx] * p) / total;
-      setProgress(tp * 100);
-      if (p >= 1) {
-        clearInterval(int);
-        elapsed += stepDurations[idx];
-        idx++;
-        setTimeout(advance, 60);
-      }
-    }, 40);
-  };
-  advance();
-}
-
 function finishProcessing(data) {
   document.querySelectorAll('.step').forEach(el => { el.classList.remove('active'); el.classList.add('done'); });
   const status = document.getElementById('proc-status-text');
@@ -474,7 +400,7 @@ function finishProcessing(data) {
     App.data = data;
     App.state = 'results';
     App.section = 'overview';
-    renderTopbar(); renderSidebar(); renderPanel();
+    renderTopbar(); renderTabbar(); renderPanel();
   }, 500);
 }
 
@@ -599,15 +525,6 @@ function clearRuntimeWatchers() {
   }
 }
 
-function enrichMockData(d) {
-  d.emotions.emotion_timeline = d.diarized_turns.map(t => ({
-    speaker: t.speaker, start: t.start,
-    emotion: t.emotion.primary_emotion,
-    confidence: t.emotion.confidence,
-  }));
-  return d;
-}
-
 function normalizeApiCall(call) {
   const transcript = (call.transcript || '').trim();
   const duration = Number(call.duration_seconds || 0);
@@ -635,13 +552,20 @@ function normalizeApiCall(call) {
   const sentimentScores = sentimentScoresFromCompound(call.sentiment_compound);
   const keywords = normalizeKeywords(call.keywords_json);
   const suggestions = normalizeSuggestions(call.suggestions_json);
+  const analytics = normalizeAnalytics(call.analytics, turns);
 
   return {
     id: call.id,
+    audio_filename: call.audio_filename || App.file?.name || '',
+    duration_seconds: duration,
+    domain_id: call.domain_id || AUTO_DOMAIN_ID,
+    status: call.status,
+    current_stage: call.current_stage,
     transcript,
     language: call.language || 'en',
     formatted_transcript: transcript,
     diarized_turns: turns,
+    analytics,
     summary: call.summary || 'Summary is not available yet.',
     sentiment: {
       gemini_analysis: call.sentiment_label
@@ -774,6 +698,57 @@ function normalizeKeywords(raw) {
   return [];
 }
 
+function normalizeAnalytics(raw, turns) {
+  const speakerOrder = [...new Set(turns.map(turn => turn.speaker).filter(Boolean))];
+  const primary = speakerOrder[0] || 'Speaker 1';
+  const secondary = speakerOrder[1] || 'Speaker 2';
+  const fallback = {
+    primary_talk_seconds: 0,
+    secondary_talk_seconds: 0,
+    primary_word_count: 0,
+    secondary_word_count: 0,
+    primary_question_count: 0,
+    primary_statement_count: 0,
+    primary_acknowledgment_count: 0,
+    primary_suggestion_count: 0,
+  };
+
+  turns.forEach(turn => {
+    const duration = Math.max(0, Number(turn.end || 0) - Number(turn.start || 0));
+    const words = String(turn.text || '').split(/\s+/).filter(Boolean).length;
+    if (turn.speaker === primary) {
+      fallback.primary_talk_seconds += duration;
+      fallback.primary_word_count += words;
+      const act = String(turn.dialogue_act || '').toLowerCase();
+      if (act === 'question') fallback.primary_question_count += 1;
+      if (act === 'statement') fallback.primary_statement_count += 1;
+      if (act === 'acknowledgment') fallback.primary_acknowledgment_count += 1;
+      if (act === 'suggestion') fallback.primary_suggestion_count += 1;
+    } else if (turn.speaker === secondary) {
+      fallback.secondary_talk_seconds += duration;
+      fallback.secondary_word_count += words;
+    }
+  });
+
+  const primaryTalk = Number(raw?.primary_talk_seconds ?? fallback.primary_talk_seconds);
+  const secondaryTalk = Number(raw?.secondary_talk_seconds ?? fallback.secondary_talk_seconds);
+  const talkTotal = primaryTalk + secondaryTalk;
+  return {
+    primary_speaker: primary,
+    secondary_speaker: secondary,
+    primary_talk_seconds: primaryTalk,
+    secondary_talk_seconds: secondaryTalk,
+    talk_time_ratio: Number(raw?.talk_time_ratio ?? (talkTotal ? primaryTalk / talkTotal : 0)),
+    primary_word_count: Number(raw?.primary_word_count ?? fallback.primary_word_count),
+    secondary_word_count: Number(raw?.secondary_word_count ?? fallback.secondary_word_count),
+    primary_question_count: Number(raw?.primary_question_count ?? fallback.primary_question_count),
+    primary_statement_count: Number(raw?.primary_statement_count ?? fallback.primary_statement_count),
+    primary_acknowledgment_count: Number(raw?.primary_acknowledgment_count ?? fallback.primary_acknowledgment_count),
+    primary_suggestion_count: Number(raw?.primary_suggestion_count ?? fallback.primary_suggestion_count),
+    quality_scores_json: raw?.quality_scores_json || null,
+  };
+}
+
 function normalizeSuggestions(raw) {
   if (Array.isArray(raw)) {
     return raw.map(item => typeof item === 'string' ? item : (item.text || item.suggestion || '')).filter(Boolean);
@@ -787,7 +762,7 @@ function resetToUpload() {
   App.callId = null;
   Object.values(App.charts).forEach(c => c?.destroy?.());
   App.charts = {};
-  renderTopbar(); renderSidebar(); renderPanel();
+  renderTopbar(); renderTabbar(); renderPanel();
 }
 
 /* ============================================================
@@ -809,7 +784,7 @@ function panelHead(eyebrow, title, subtitle, actions = '') {
 function renderOverview(panel) {
   const d = App.data;
   const turns = d.diarized_turns;
-  const duration = turns.at(-1).end;
+  const duration = getDuration(d);
   const wc = d.sentiment.detailed_scores.text_stats.word_count;
   const dom = d.emotions.dominant_emotion;
   const domPct = Math.round((d.emotions.emotion_distribution[dom] || 0) * 100);
@@ -817,6 +792,9 @@ function renderOverview(panel) {
   const ss = d.sentiment.detailed_scores.vader_scores;
   const sentLabel = d.sentiment.detailed_scores.sentiment_label;
   const sentText = sentimentDisplay(sentLabel);
+  const analytics = d.analytics;
+  const wpm = duration ? Math.round(wc / Math.max(duration / 60, 1 / 60)) : 0;
+  const primaryTalk = Math.round((analytics.talk_time_ratio || 0) * 100);
 
   const distEntries = Object.entries(d.emotions.emotion_distribution)
     .filter(([, v]) => v > 0)
@@ -832,7 +810,7 @@ function renderOverview(panel) {
       <div class="kpi-strip">
         <div class="kpi">
           <div class="kpi-label">Duration</div>
-          <div class="kpi-value">${formatDuration(duration)}<span class="unit">min</span></div>
+          <div class="kpi-value">${formatDuration(duration)}</div>
           <div class="kpi-sub">${turns.length} turns</div>
         </div>
         <div class="kpi">
@@ -848,7 +826,7 @@ function renderOverview(panel) {
         <div class="kpi">
           <div class="kpi-label">Words spoken</div>
           <div class="kpi-value">${wc.toLocaleString()}</div>
-          <div class="kpi-sub">${(wc/(duration/60)).toFixed(0)} wpm avg</div>
+          <div class="kpi-sub">${wpm} wpm avg</div>
         </div>
       </div>
 
@@ -909,7 +887,47 @@ function renderOverview(panel) {
       </div>
 
       <div class="section-band">
-        <span class="num">ii.</span><span class="title">What the call was about</span><span class="rule"></span>
+        <span class="num">ii.</span><span class="title">Speaker analytics</span><span class="rule"></span>
+      </div>
+
+      <div class="row-split">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Talk time <span class="ital">balance</span></div>
+            <span class="card-tag">${escapeHtml(analytics.primary_speaker)} / ${escapeHtml(analytics.secondary_speaker)}</span>
+          </div>
+          <div class="card-body">
+            <div class="compound" style="margin-top:0;padding-top:0;border-top:0">
+              <div class="head">
+                <span class="l">${escapeHtml(analytics.primary_speaker)}</span>
+                <span class="v">${primaryTalk}%</span>
+              </div>
+              <div class="gauge-track" style="background:linear-gradient(to right,var(--accent) 0%,var(--accent) ${primaryTalk}%,var(--line-2) ${primaryTalk}%,var(--line-2) 100%)">
+                <div class="gauge-marker" style="left:${primaryTalk}%"></div>
+              </div>
+              <div class="gauge-scale"><span>${formatDuration(analytics.primary_talk_seconds)}</span><span>${formatDuration(analytics.secondary_talk_seconds)}</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Dialogue acts</div>
+            <span class="card-tag">primary speaker</span>
+          </div>
+          <div class="card-body">
+            <div class="tags">
+              <span class="tag accent">questions ${analytics.primary_question_count}</span>
+              <span class="tag">statements ${analytics.primary_statement_count}</span>
+              <span class="tag">acks ${analytics.primary_acknowledgment_count}</span>
+              <span class="tag">suggestions ${analytics.primary_suggestion_count}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-band">
+        <span class="num">iii.</span><span class="title">What the call was about</span><span class="rule"></span>
       </div>
 
       <div class="card">
@@ -929,7 +947,7 @@ function renderOverview(panel) {
       </div>
 
       <div class="section-band">
-        <span class="num">iii.</span><span class="title">In one breath</span><span class="rule"></span>
+        <span class="num">iv.</span><span class="title">In one breath</span><span class="rule"></span>
       </div>
 
       <div class="card">
@@ -1488,123 +1506,6 @@ function bindKeyboard() {
 }
 
 /* ============================================================
-   Tweaks panel
-   ============================================================ */
-const ACCENT_OPTIONS = [
-  { name: 'indigo',  hex: '#5b5bd6' },
-  { name: 'blue',    hex: '#2f6fed' },
-  { name: 'emerald', hex: '#1f9d6b' },
-  { name: 'violet',  hex: '#8a5cf0' },
-  { name: 'rose',    hex: '#e25563' },
-  { name: 'slate',   hex: '#475569' },
-];
-const TWEAKS = { accent: 'indigo', density: 'comfortable', emo: 'fresh', nav: 'grouped' };
-
-function bindTweaks() {
-  document.getElementById('tweaks-close').onclick = () =>
-    document.getElementById('tweaks').classList.remove('open');
-  renderTweaksBody();
-}
-
-function renderTweaksBody() {
-  const body = document.getElementById('tweaks-body');
-  body.innerHTML = `
-    <div class="tweak-group">
-      <div class="tweak-label">Accent</div>
-      <div class="swatches" id="tw-accent">
-        ${ACCENT_OPTIONS.map(o => `
-          <button data-accent="${o.name}" class="${TWEAKS.accent === o.name ? 'active' : ''}" style="background:${o.hex}" title="${o.name}"></button>
-        `).join('')}
-      </div>
-    </div>
-
-    <div class="tweak-group">
-      <div class="tweak-label">Density</div>
-      <div class="seg" id="tw-density">
-        ${['compact','comfortable','spacious'].map(d => `
-          <button data-density="${d}" class="${TWEAKS.density === d ? 'active' : ''}">${d}</button>
-        `).join('')}
-      </div>
-    </div>
-
-    <div class="tweak-group">
-      <div class="tweak-label">Sidebar nav</div>
-      <div class="seg" id="tw-nav">
-        ${['grouped','icons','numbered'].map(n => `
-          <button data-nav="${n}" class="${TWEAKS.nav === n ? 'active' : ''}">${n}</button>
-        `).join('')}
-      </div>
-    </div>
-
-    <div class="tweak-group">
-      <div class="tweak-label">Emotion palette</div>
-      <div class="seg" id="tw-emo">
-        ${['fresh','muted','vivid'].map(p => `
-          <button data-emo="${p}" class="${TWEAKS.emo === p ? 'active' : ''}">${p}</button>
-        `).join('')}
-      </div>
-    </div>
-
-    <div class="tweak-group">
-      <div class="tweak-label">Jump to state</div>
-      <div class="seg">
-        <button onclick="resetToUpload()">upload</button>
-        <button onclick="jumpProcessing()">processing</button>
-        <button onclick="jumpResults()">results</button>
-      </div>
-    </div>
-  `;
-
-  body.querySelectorAll('[data-accent]').forEach(b => b.onclick = () => {
-    TWEAKS.accent = b.dataset.accent;
-    const o = ACCENT_OPTIONS.find(x => x.name === b.dataset.accent);
-    document.documentElement.style.setProperty('--accent', o.hex);
-    document.documentElement.style.setProperty('--accent-soft', shade(o.hex, 0.4));
-    document.documentElement.style.setProperty('--accent-bg', shade(o.hex, 0.7));
-    document.documentElement.style.setProperty('--accent-tint', shade(o.hex, 0.86));
-    renderTweaksBody();
-    if (App.state === 'results' && App.section === 'charts') buildCharts(App.data);
-  });
-  body.querySelectorAll('[data-density]').forEach(b => b.onclick = () => {
-    TWEAKS.density = b.dataset.density;
-    document.body.dataset.density = b.dataset.density;
-    renderTweaksBody();
-  });
-  body.querySelectorAll('[data-nav]').forEach(b => b.onclick = () => {
-    TWEAKS.nav = b.dataset.nav;
-    renderSidebar();
-    renderTweaksBody();
-  });
-  body.querySelectorAll('[data-emo]').forEach(b => b.onclick = () => {
-    TWEAKS.emo = b.dataset.emo;
-    applyEmoPalette(b.dataset.emo);
-    renderTweaksBody();
-    if (App.state === 'results') renderPanel();
-  });
-}
-
-function applyEmoPalette(p) {
-  const sets = {
-    fresh:  { joy:'#2e9e6b', anger:'#e8634a', sadness:'#4f7cd4', fear:'#8a6fe0', surprise:'#e0a341', disgust:'#5aa88f', neutral:'#9aa0ab', unknown:'#9aa0ab' },
-    muted:  { joy:'#84a98c', anger:'#cf8b7d', sadness:'#8aa0c4', fear:'#a399c9', surprise:'#cdb083', disgust:'#9bb6a6', neutral:'#aab0bb', unknown:'#aab0bb' },
-    vivid:  { joy:'#22c55e', anger:'#ef4444', sadness:'#3b82f6', fear:'#a855f7', surprise:'#f59e0b', disgust:'#14b8a6', neutral:'#94a3b8', unknown:'#94a3b8' },
-  };
-  const s = sets[p] || sets.fresh;
-  Object.entries(s).forEach(([k, v]) => { EMOTION_HEX[k] = v; });
-}
-
-function jumpProcessing() {
-  if (!App.file) App.file = { name: 'session-2026-05-19.mp3', size: 4823104, type: 'audio/mpeg' };
-  startProcessing({ demo: true });
-}
-function jumpResults() {
-  if (!App.file) App.file = { name: 'session-2026-05-19.mp3', size: 4823104, type: 'audio/mpeg' };
-  App.data = enrichMockData(window.MOCK_RESPONSE);
-  App.state = 'results'; App.section = 'overview';
-  renderTopbar(); renderSidebar(); renderPanel();
-}
-
-/* ============================================================
    Helpers
    ============================================================ */
 function apiUrl(path) {
@@ -1628,7 +1529,7 @@ async function apiFetch(path, options = {}) {
   return response.json();
 }
 
-async function mockExport() {
+async function exportReport() {
   if (!App.callId) {
     exportTextReport();
     return;
@@ -1651,7 +1552,7 @@ async function mockExport() {
 function exportTextReport() {
   const d = App.data || {};
   const text = [
-    'Call Analyzer Report',
+    'ConvIQ Report',
     '',
     'Summary',
     d.summary || '',
@@ -1705,12 +1606,4 @@ function hexA(hex, a) {
   if (hex.length === 3) hex = hex.split('').map(c=>c+c).join('');
   const r = parseInt(hex.slice(0,2),16), g = parseInt(hex.slice(2,4),16), b = parseInt(hex.slice(4,6),16);
   return `rgba(${r},${g},${b},${a})`;
-}
-function shade(hex, lightenAmount) {
-  // mix hex with white by `lightenAmount` (0..1, where 1 = white)
-  hex = hex.replace('#','');
-  if (hex.length === 3) hex = hex.split('').map(c=>c+c).join('');
-  const r = parseInt(hex.slice(0,2),16), g = parseInt(hex.slice(2,4),16), b = parseInt(hex.slice(4,6),16);
-  const mix = (c) => Math.round(c + (255 - c) * lightenAmount);
-  return `rgb(${mix(r)}, ${mix(g)}, ${mix(b)})`;
 }
