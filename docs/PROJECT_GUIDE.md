@@ -197,6 +197,15 @@ PYTHONPATH=. /home/k0de/miniforge3/bin/conda run -n ai mypy apps core pipeline
 
 Next-session prompt: continue from the latest `dev` branch. Manual frontend testing is done, pyannote-backed validation works after `HF_TOKEN` access was configured, the UI submits `domain_id=auto`, Phase 2 analytics persists turn emotions, direct emotion distribution, keywords, and one per-call analytics row, and Phase 3 v1 persists dialogue-act labels/counts when `DIALOGUE_ACT_MODEL` points at a trained local artifact. Keep coaching suggestions empty until Phase 4 RAG can ground them with citations.
 
+Night checkpoint, May 31, 2026:
+
+- UI refresh, demo benchmark script, tracked demo baseline, screenshots, and README demo polish were committed as `79656e1 feat: refresh demo UI and baseline artifacts`.
+- The repo was clean after that commit.
+- A better local dialogue-act artifact was trained at the default ignored path `models/dialogue-act/distilbert-dailydialog-app-buckets`. It is intentionally not committed because `models/` is ignored.
+- The trained local artifact loads through `pipeline.dialogue_act` with `warning=None`.
+- Dialogue-act metrics for the local artifact: full test split `80.84%` accuracy / `0.782` macro F1; 1k test subset `77.3%` accuracy / `0.768` macro F1.
+- The committed `eval/demo_baseline.json` and README demo table were not rerun after this local model training. Next clean follow-up: rerun `python scripts/run_demo_benchmark.py --api http://127.0.0.1:8000 --out eval/demo_baseline.json` against the local stack and decide whether to commit the updated demo baseline.
+
 ## Coding Guidelines
 
 Use Ruff formatting with 100-character line length and Python 3.11+ syntax. Use `snake_case` for modules, functions, variables, and YAML IDs; use `PascalCase` for classes and Pydantic models. Keep domain-specific labels and prompt behavior in `domains/*.yaml` instead of hardcoding counseling, sales, or support assumptions in pipeline code.
